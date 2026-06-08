@@ -1,0 +1,344 @@
+//! CIDR blocks for IPv4 and IPv6, plus the address-family-agnostic [`IpCidr`].
+
+use std::fmt;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::str::FromStr;
+
+use crate::error::ParseError;
+
+/// Generate a concrete CIDR type for one address family.
+///
+/// The IPv4 and IPv6 blocks share almost all of their logic; only a handful of
+/// methods (IPv4 broadcast, host-count conventions) differ and are written by
+/// hand below.
+macro_rules! define_cidr {
+    ($name:ident, $iter:ident, $addr:ty, $uint:ty, $bits:literal) => {
+        /// A CIDR block: a network address paired with a prefix length.
+        ///
+        /// The stored network address is always canonical — host bits below the
+        /// prefix are cleared on construction, so two equal blocks compare equal
+        /// regardless of how they were written.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        pub struct $name {
+            network: $uint,
+            prefix_len: u8,
+        }
+
+        impl $name {
+            /// The maximum prefix length for this family (32 for IPv4, 128 for
+            /// IPv6).
+            pub const MAX_PREFIX_LEN: u8 = $bits;
+
+            /// Build a block from an address and prefix length, masking off any
+            /// host bits so the stored network is canonical.
+            ///
+            /// # Errors
+            ///
+            /// Returns [`ParseError::BadPrefix`] if `prefix_len` exceeds
+            /// [`Self::MAX_PREFIX_LEN`].
+            pub fn new(addr: $addr, prefix_len: u8) -> Result<Self, ParseError> {
+                if prefix_len > $bits {
+                    return Err(ParseError::BadPrefix(prefix_len.to_string()));
+                }
+                let mask = Self::mask_bits(prefix_len);
+                Ok(Self {
+                    network: addr.to_bits() & mask,
+                    prefix_len,
+                })
+            }
+
+            /// The all-ones network mask for `prefix_len`, as a raw integer.
+            const fn mask_bits(prefix_len: u8) -> $uint {
+                if prefix_len == 0 {
+                    0
+                } else {
+                    <$uint>::MAX << ($bits - prefix_len as u32)
+                }
+            }
+
+            /// The prefix length (number of leading network bits).
+            #[inline]
+            pub const fn prefix_len(&self) -> u8 {
+                self.prefix_len
+            }
+
+            /// The network address (lowest address in the block).
+            #[inline]
+            pub fn network(&self) -> $addr {
+                <$addr>::from_bits(self.network)
+            }
+
+            /// The network mask as an address (e.g. `255.255.255.0`).
+            #[inline]
+            pub fn netmask(&self) -> $addr {
+                <$addr>::from_bits(Self::mask_bits(self.prefix_len))
+            }
+
+            /// The highest address in the block (all host bits set).
+            ///
+            /// For IPv4 this is the broadcast address; see also
+            /// [`Ipv4Cidr::broadcast`].
+            #[inline]
+            pub fn last_address(&self) -> $addr {
+                <$addr>::from_bits(self.network | !Self::mask_bits(self.prefix_len))
+            }
+
+            /// Returns `true` if `addr` falls inside this block.
+            #[inline]
+            pub fn contains(&self, addr: $addr) -> bool {
+                addr.to_bits() & Self::mask_bits(self.prefix_len) == self.network
+            }
+
+            /// The total number of addresses in the block, i.e.
+            /// `2^(MAX_PREFIX_LEN - prefix_len)`.
+            ///
+            /// Saturates to [`u128::MAX`] for an IPv6 `/0` (whose true count,
+            /// `2^128`, does not fit in a `u128`).
+            pub const fn address_count(&self) -> u128 {
+                let host_bits = $bits - self.prefix_len as u32;
+                if host_bits >= 128 {
+                    u128::MAX
+                } else {
+                    1u128 << host_bits
+                }
+            }
+
+            /// Iterate over every address in the block, lowest to highest.
+            ///
+            /// For large IPv6 blocks this iterator is effectively unbounded —
+            /// prefer [`contains`](Self::contains) or a bounded range.
+            pub fn addresses(&self) -> $iter {
+                $iter {
+                    next: Some(self.network),
+                    last: self.network | !Self::mask_bits(self.prefix_len),
+                }
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, "{}/{}", self.network(), self.prefix_len)
+            }
+        }
+
+        impl FromStr for $name {
+            type Err = ParseError;
+
+            fn from_str(s: &str) -> Result<Self, ParseError> {
+                let s = s.trim();
+                if s.is_empty() {
+                    return Err(ParseError::Empty);
+                }
+                let (addr_str, prefix_str) = s
+                    .split_once('/')
+                    .ok_or_else(|| ParseError::BadPrefix(s.to_string()))?;
+                let addr = <$addr>::from_str(addr_str.trim())
+                    .map_err(|_| ParseError::BadAddr(addr_str.to_string()))?;
+                let prefix_len = prefix_str
+                    .trim()
+                    .parse::<u8>()
+                    .map_err(|_| ParseError::BadPrefix(prefix_str.to_string()))?;
+                Self::new(addr, prefix_len)
+            }
+        }
+
+        /// Iterator over a contiguous run of addresses, lowest to highest.
+        ///
+        /// Yielded by both CIDR blocks and address ranges of this family.
+        #[derive(Debug, Clone)]
+        pub struct $iter {
+            next: Option<$uint>,
+            last: $uint,
+        }
+
+        impl $iter {
+            /// Construct an inclusive iterator over `first..=last` raw values.
+            /// Callers must ensure `first <= last`.
+            pub(crate) fn bounded(first: $uint, last: $uint) -> Self {
+                $iter {
+                    next: Some(first),
+                    last,
+                }
+            }
+        }
+
+        impl Iterator for $iter {
+            type Item = $addr;
+
+            fn next(&mut self) -> Option<$addr> {
+                let cur = self.next?;
+                self.next = if cur >= self.last {
+                    None
+                } else {
+                    Some(cur + 1)
+                };
+                Some(<$addr>::from_bits(cur))
+            }
+        }
+    };
+}
+
+define_cidr!(Ipv4Cidr, Ipv4AddrIter, Ipv4Addr, u32, 32);
+define_cidr!(Ipv6Cidr, Ipv6AddrIter, Ipv6Addr, u128, 128);
+
+impl Ipv4Cidr {
+    /// The IPv4 broadcast address (highest address in the block).
+    ///
+    /// Identical to [`last_address`](Self::last_address); provided under the
+    /// name network operators expect.
+    #[inline]
+    pub fn broadcast(&self) -> Ipv4Addr {
+        self.last_address()
+    }
+
+    /// The number of *usable host* addresses, following the usual IPv4
+    /// conventions:
+    ///
+    /// - `/31` → 2 (RFC 3021 point-to-point link)
+    /// - `/32` → 1 (single host)
+    /// - everything else → total minus the network and broadcast addresses
+    pub fn host_count(&self) -> u64 {
+        let total = self.address_count() as u64;
+        match self.prefix_len() {
+            32 => 1,
+            31 => 2,
+            _ => total - 2,
+        }
+    }
+
+    /// Iterate over the usable host addresses, excluding the network and
+    /// broadcast addresses for `/30` and shorter prefixes. For `/31` and `/32`
+    /// every address is yielded (per RFC 3021 / single-host conventions).
+    pub fn hosts(&self) -> Ipv4AddrIter {
+        let first = self.network;
+        let last = self.last_address().to_bits();
+        if self.prefix_len() <= 30 {
+            Ipv4AddrIter {
+                next: Some(first + 1),
+                last: last - 1,
+            }
+        } else {
+            Ipv4AddrIter {
+                next: Some(first),
+                last,
+            }
+        }
+    }
+}
+
+impl Ipv6Cidr {
+    /// Iterate over the host addresses of the block.
+    ///
+    /// IPv6 has no broadcast address, so this is identical to
+    /// [`addresses`](Self::addresses) and is provided for symmetry with
+    /// [`Ipv4Cidr::hosts`].
+    pub fn hosts(&self) -> Ipv6AddrIter {
+        self.addresses()
+    }
+}
+
+/// An address-family-agnostic CIDR block — either IPv4 or IPv6.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum IpCidr {
+    /// An IPv4 block.
+    V4(Ipv4Cidr),
+    /// An IPv6 block.
+    V6(Ipv6Cidr),
+}
+
+impl IpCidr {
+    /// Build a block from any [`IpAddr`] and a prefix length.
+    pub fn new(addr: IpAddr, prefix_len: u8) -> Result<Self, ParseError> {
+        match addr {
+            IpAddr::V4(a) => Ipv4Cidr::new(a, prefix_len).map(IpCidr::V4),
+            IpAddr::V6(a) => Ipv6Cidr::new(a, prefix_len).map(IpCidr::V6),
+        }
+    }
+
+    /// The prefix length of the underlying block.
+    pub fn prefix_len(&self) -> u8 {
+        match self {
+            IpCidr::V4(c) => c.prefix_len(),
+            IpCidr::V6(c) => c.prefix_len(),
+        }
+    }
+
+    /// The network address of the underlying block.
+    pub fn network(&self) -> IpAddr {
+        match self {
+            IpCidr::V4(c) => IpAddr::V4(c.network()),
+            IpCidr::V6(c) => IpAddr::V6(c.network()),
+        }
+    }
+
+    /// The highest address in the block.
+    pub fn last_address(&self) -> IpAddr {
+        match self {
+            IpCidr::V4(c) => IpAddr::V4(c.last_address()),
+            IpCidr::V6(c) => IpAddr::V6(c.last_address()),
+        }
+    }
+
+    /// The total number of addresses in the block.
+    pub fn address_count(&self) -> u128 {
+        match self {
+            IpCidr::V4(c) => c.address_count(),
+            IpCidr::V6(c) => c.address_count(),
+        }
+    }
+
+    /// Returns `true` if `addr` is in the block. A mismatched address family
+    /// always returns `false`.
+    pub fn contains(&self, addr: IpAddr) -> bool {
+        match (self, addr) {
+            (IpCidr::V4(c), IpAddr::V4(a)) => c.contains(a),
+            (IpCidr::V6(c), IpAddr::V6(a)) => c.contains(a),
+            _ => false,
+        }
+    }
+
+    /// `true` if this is an IPv4 block.
+    pub fn is_ipv4(&self) -> bool {
+        matches!(self, IpCidr::V4(_))
+    }
+
+    /// `true` if this is an IPv6 block.
+    pub fn is_ipv6(&self) -> bool {
+        matches!(self, IpCidr::V6(_))
+    }
+}
+
+impl fmt::Display for IpCidr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            IpCidr::V4(c) => c.fmt(f),
+            IpCidr::V6(c) => c.fmt(f),
+        }
+    }
+}
+
+impl FromStr for IpCidr {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, ParseError> {
+        // Try IPv4 first (its addresses never parse as IPv6), then IPv6.
+        if let Ok(c) = Ipv4Cidr::from_str(s) {
+            return Ok(IpCidr::V4(c));
+        }
+        Ipv6Cidr::from_str(s).map(IpCidr::V6)
+    }
+}
+
+impl From<Ipv4Cidr> for IpCidr {
+    fn from(c: Ipv4Cidr) -> Self {
+        IpCidr::V4(c)
+    }
+}
+
+impl From<Ipv6Cidr> for IpCidr {
+    fn from(c: Ipv6Cidr) -> Self {
+        IpCidr::V6(c)
+    }
+}
