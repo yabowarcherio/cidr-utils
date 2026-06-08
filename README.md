@@ -1,0 +1,134 @@
+# cidr-utils
+
+[![CI](https://github.com/yabowarcherio/cidr-utils/actions/workflows/ci.yml/badge.svg)](https://github.com/yabowarcherio/cidr-utils/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+
+Parse, enumerate, and test **IPv4 and IPv6** CIDR blocks and address ranges.
+Pure integer math over the standard-library address types — no DNS, no sockets,
+no allocation in the hot paths. Library **and** CLI.
+
+- **CIDR blocks** — `192.168.1.0/24`, `2001:db8::/32`
+- **Ranges** — `192.168.1.1-192.168.1.50`, with last-octet shorthand `192.168.1.1-50`
+- **Single addresses** — `10.0.0.5`
+- Network / broadcast / netmask, host & address counts, containment tests
+- Host enumeration that respects IPv4 network/broadcast conventions (incl. `/31`, `/32`)
+
+## Install
+
+```sh
+# CLI
+cargo install cidr-utils
+
+# Library
+cargo add cidr-utils
+```
+
+For a slim library-only dependency without the CLI stack:
+
+```toml
+[dependencies]
+cidr-utils = { version = "0.1", default-features = false }
+```
+
+## Usage (CLI)
+
+```text
+cidr-utils [OPTIONS] <TARGET>...
+
+Arguments:
+  <TARGET>...  CIDR blocks, ranges, or addresses. Use `-` to read from stdin.
+
+Options:
+  -c, --count          Print the number of addresses instead of listing them
+  -i, --info           Print a summary (network, broadcast, mask, count)
+  -a, --all            Include network/broadcast when listing (IPv4 blocks)
+  -l, --limit <N>      Stop after listing N addresses per target (0 = no limit)
+      --contains <IP>  Print which targets contain IP; exit 0 if any, else 1
+  -h, --help           Print help
+  -V, --version
+```
+
+List the usable hosts in a subnet (network and broadcast are skipped):
+
+```sh
+$ cidr-utils 192.168.1.0/30
+192.168.1.1
+192.168.1.2
+```
+
+Summarize a block:
+
+```sh
+$ cidr-utils --info 192.168.1.0/24
+192.168.1.0/24
+  network:   192.168.1.0
+  broadcast: 192.168.1.255
+  netmask:   255.255.255.0
+  prefix:    /24
+  addresses: 256
+  hosts:     254
+```
+
+Ranges, shorthand, counts, and membership:
+
+```sh
+cidr-utils 10.0.0.1-10.0.0.50      # explicit range
+cidr-utils 10.0.0.1-50             # last-octet shorthand
+cidr-utils --count 10.0.0.0/8      # 16777216
+cidr-utils --contains 10.1.2.3 10.0.0.0/8   # prints the matching target
+```
+
+**Exit codes:** `0` success · `1` `--contains` matched nothing · `2` a target
+failed to parse.
+
+## Usage (library)
+
+```rust
+use cidr_utils::IpSet;
+
+// One entry point for every target shape.
+let net: IpSet = "192.168.1.0/30".parse().unwrap();
+assert_eq!(net.count(), 4);
+
+// `.hosts()` drops the network and broadcast addresses for IPv4 blocks.
+let hosts: Vec<_> = net.hosts().map(|a| a.to_string()).collect();
+assert_eq!(hosts, ["192.168.1.1", "192.168.1.2"]);
+
+// Ranges and bare addresses parse the same way.
+let range: IpSet = "10.0.0.1-5".parse().unwrap();
+assert_eq!(range.count(), 5);
+```
+
+When you know the address family, the concrete types expose the full surface:
+
+```rust
+use cidr_utils::Ipv4Cidr;
+use std::net::Ipv4Addr;
+
+let block: Ipv4Cidr = "192.168.0.0/24".parse().unwrap();
+assert_eq!(block.network(), Ipv4Addr::new(192, 168, 0, 0));
+assert_eq!(block.broadcast(), Ipv4Addr::new(192, 168, 0, 255));
+assert_eq!(block.netmask(), Ipv4Addr::new(255, 255, 255, 0));
+assert_eq!(block.host_count(), 254);
+assert!(block.contains(Ipv4Addr::new(192, 168, 0, 50)));
+```
+
+`Ipv6Cidr`, `Ipv4Range`, `Ipv6Range`, and the family-agnostic `IpCidr` /
+`IpRange` / `IpSet` enums round out the API. Enable the `serde` feature to
+derive `Serialize`/`Deserialize` on all of them.
+
+## Design notes
+
+- **No networking.** This crate is pure address arithmetic; it never resolves
+  names or touches a socket. That makes it safe to use in build scripts and
+  hot loops.
+- **Canonical blocks.** Constructing a CIDR masks off the host bits, so
+  `192.168.1.77/24` and `192.168.1.0/24` compare equal.
+- **Counts are `u128`.** Address counts saturate to `u128::MAX` only for the
+  IPv6 `/0`, whose true size (`2^128`) does not fit.
+- **`#![forbid(unsafe_code)]`.**
+
+## License
+
+Licensed under either of [Apache-2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at
+your option.
