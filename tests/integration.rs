@@ -329,3 +329,11 @@ fn ipv4_classification() {
         .is_documentation());
     assert!(!"8.8.8.0/24".parse::<Ipv4Cidr>().unwrap().is_private());
 }
+
+#[test]
+fn ipv6_classification() {
+    assert!("ff00::/8".parse::<Ipv6Cidr>().unwrap().is_multicast());
+    assert!("::1/128".parse::<Ipv6Cidr>().unwrap().is_loopback());
+    assert!("::/128".parse::<Ipv6Cidr>().unwrap().is_unspecified());
+    assert!(!"2001:db8::/32".parse::<Ipv6Cidr>().unwrap().is_multicast());
+}

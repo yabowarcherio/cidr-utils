@@ -396,6 +396,21 @@ impl Ipv4Cidr {
 }
 
 impl Ipv6Cidr {
+    /// `true` if the block is the IPv6 loopback (`::1`).
+    pub fn is_loopback(&self) -> bool {
+        self.network().is_loopback()
+    }
+
+    /// `true` if the block is IPv6 multicast (`ff00::/8`).
+    pub fn is_multicast(&self) -> bool {
+        self.network().is_multicast()
+    }
+
+    /// `true` if the block is the unspecified address range (`::`).
+    pub fn is_unspecified(&self) -> bool {
+        self.network().is_unspecified()
+    }
+
     /// Iterate over the host addresses of the block.
     ///
     /// IPv6 has no broadcast address, so this is identical to
