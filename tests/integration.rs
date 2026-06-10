@@ -409,3 +409,23 @@ fn aggregate_keeps_disjoint_blocks() {
 fn aggregate_empty_is_empty() {
     assert!(Ipv4Cidr::aggregate(&[]).is_empty());
 }
+
+#[test]
+fn address_iter_size_hint_is_exact_for_ipv4() {
+    let c: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    assert_eq!(c.addresses().size_hint(), (256, Some(256)));
+    // /0 has 2^32 addresses, which still fits usize on 64-bit targets.
+    let all: Ipv4Cidr = "0.0.0.0/0".parse().unwrap();
+    assert_eq!(
+        all.addresses().size_hint(),
+        (1usize << 32, Some(1usize << 32))
+    );
+}
+
+#[test]
+fn address_iter_size_hint_saturates_for_huge_ipv6() {
+    let all: Ipv6Cidr = "::/0".parse().unwrap();
+    let (lower, upper) = all.addresses().size_hint();
+    assert_eq!(lower, usize::MAX);
+    assert_eq!(upper, None);
+}

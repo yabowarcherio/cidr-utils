@@ -286,6 +286,23 @@ macro_rules! define_cidr {
                 };
                 Some(<$addr>::from_bits(cur))
             }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                match self.next {
+                    None => (0, Some(0)),
+                    Some(cur) => {
+                        // `span` is the count minus one, widened so the IPv4
+                        // case never overflows. `u128::from` is an identity
+                        // conversion for the IPv6 (`u128`) instantiation.
+                        let span = u128::from(self.last) - u128::from(cur);
+                        match usize::try_from(span) {
+                            Ok(n) if n != usize::MAX => (n + 1, Some(n + 1)),
+                            // Count exceeds `usize` (only possible for IPv6).
+                            _ => (usize::MAX, None),
+                        }
+                    }
+                }
+            }
         }
     };
 }
