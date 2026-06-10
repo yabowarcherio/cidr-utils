@@ -9,7 +9,7 @@ use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
-use crate::cidr::{Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter, Ipv6Cidr};
+use crate::cidr::{IpCidr, Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter, Ipv6Cidr};
 use crate::error::ParseError;
 
 macro_rules! define_range {
@@ -327,6 +327,15 @@ impl IpRange {
             (IpRange::V4(r), IpAddr::V4(a)) => r.contains(a),
             (IpRange::V6(r), IpAddr::V6(a)) => r.contains(a),
             _ => false,
+        }
+    }
+
+    /// Decompose the range into the minimal set of aligned CIDR blocks that
+    /// exactly cover it, preserving the address family.
+    pub fn to_cidrs(&self) -> Vec<IpCidr> {
+        match self {
+            IpRange::V4(r) => r.to_cidrs().into_iter().map(IpCidr::V4).collect(),
+            IpRange::V6(r) => r.to_cidrs().into_iter().map(IpCidr::V6).collect(),
         }
     }
 }

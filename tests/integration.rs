@@ -450,3 +450,11 @@ fn ipv6_range_to_cidrs_whole_space() {
         .unwrap();
     assert_eq!(r.to_cidrs(), vec!["::/0".parse().unwrap()]);
 }
+
+#[test]
+fn iprange_to_cidrs_is_family_aware() {
+    let v4: IpRange = "10.0.0.0-10.0.0.255".parse().unwrap();
+    let c4 = v4.to_cidrs();
+    assert_eq!(c4, vec!["10.0.0.0/24".parse::<IpCidr>().unwrap()]);
+    assert!(c4.iter().all(|c| c.is_ipv4()));
+}
