@@ -101,3 +101,22 @@ fn aggregate_flag_merges_targets() {
     let s = String::from_utf8(out.stdout).unwrap();
     assert_eq!(s.lines().collect::<Vec<_>>(), vec!["10.0.0.0/23"]);
 }
+
+#[test]
+fn split_flag_emits_subnets() {
+    let out = bin()
+        .args(["--split", "26", "192.168.1.0/24"])
+        .output()
+        .unwrap();
+    let s = String::from_utf8(out.stdout).unwrap();
+    let lines: Vec<_> = s.lines().collect();
+    assert_eq!(
+        lines,
+        vec![
+            "192.168.1.0/26",
+            "192.168.1.64/26",
+            "192.168.1.128/26",
+            "192.168.1.192/26",
+        ]
+    );
+}

@@ -58,6 +58,10 @@ struct Cli {
     /// Merge all targets into the minimal equivalent set of CIDR blocks.
     #[arg(long, conflicts_with_all = ["count", "info", "contains", "cidrs"])]
     aggregate: bool,
+
+    /// Split each target into sub-blocks of this prefix length.
+    #[arg(long, value_name = "PREFIX", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate"])]
+    split: Option<u8>,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -185,6 +189,26 @@ fn main() -> ExitCode {
         }
         for c in Ipv6Cidr::aggregate(&v6) {
             let _ = writeln!(out, "{c}");
+        }
+        return ExitCode::SUCCESS;
+    }
+
+    if let Some(prefix) = cli.split {
+        for (_, set) in &parsed {
+            for cidr in set.to_cidrs() {
+                match cidr {
+                    IpCidr::V4(c) => {
+                        for sub in c.subnets(prefix) {
+                            let _ = writeln!(out, "{sub}");
+                        }
+                    }
+                    IpCidr::V6(c) => {
+                        for sub in c.subnets(prefix) {
+                            let _ = writeln!(out, "{sub}");
+                        }
+                    }
+                }
+            }
         }
         return ExitCode::SUCCESS;
     }
