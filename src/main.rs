@@ -83,6 +83,23 @@ fn collect_targets(args: &[String]) -> io::Result<Vec<String>> {
     Ok(out)
 }
 
+/// A short label describing where an IPv4 block sits in the address space.
+fn ipv4_class(c: &Ipv4Cidr) -> &'static str {
+    if c.is_private() {
+        "private"
+    } else if c.is_loopback() {
+        "loopback"
+    } else if c.is_link_local() {
+        "link-local"
+    } else if c.is_documentation() {
+        "documentation"
+    } else if c.is_multicast() {
+        "multicast"
+    } else {
+        "global"
+    }
+}
+
 /// Print the per-target summary used by `--info`.
 fn print_info(out: &mut impl Write, target: &str, set: &IpSet) {
     let _ = writeln!(out, "{target}");
@@ -91,9 +108,11 @@ fn print_info(out: &mut impl Write, target: &str, set: &IpSet) {
             let _ = writeln!(out, "  network:   {}", c.network());
             let _ = writeln!(out, "  broadcast: {}", c.broadcast());
             let _ = writeln!(out, "  netmask:   {}", c.netmask());
+            let _ = writeln!(out, "  wildcard:  {}", c.wildcard());
             let _ = writeln!(out, "  prefix:    /{}", c.prefix_len());
             let _ = writeln!(out, "  addresses: {}", c.address_count());
             let _ = writeln!(out, "  hosts:     {}", c.host_count());
+            let _ = writeln!(out, "  class:     {}", ipv4_class(c));
         }
         IpSet::Cidr(IpCidr::V6(c)) => {
             let _ = writeln!(out, "  network:   {}", c.network());

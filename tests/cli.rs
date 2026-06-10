@@ -120,3 +120,11 @@ fn split_flag_emits_subnets() {
         ]
     );
 }
+
+#[test]
+fn info_reports_wildcard_and_class() {
+    let out = bin().args(["--info", "10.0.0.0/8"]).output().unwrap();
+    let s = String::from_utf8(out.stdout).unwrap();
+    assert!(s.contains("wildcard:  0.255.255.255"));
+    assert!(s.contains("class:     private"));
+}
