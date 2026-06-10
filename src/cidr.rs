@@ -18,9 +18,11 @@ macro_rules! define_cidr {
         /// The stored network address is always canonical — host bits below the
         /// prefix are cleared on construction, so two equal blocks compare equal
         /// regardless of how they were written.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub struct $name {
+            // Field order matters: derived ordering sorts by network first, then
+            // by prefix length, which is the natural order for CIDR blocks.
             network: $uint,
             prefix_len: u8,
         }
@@ -336,7 +338,7 @@ impl Ipv6Cidr {
 }
 
 /// An address-family-agnostic CIDR block — either IPv4 or IPv6.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum IpCidr {
     /// An IPv4 block.

@@ -267,3 +267,17 @@ fn overlaps_detects_intersection() {
     assert!(!a.overlaps(&disjoint));
     assert!(a.overlaps(&a));
 }
+
+#[test]
+fn cidrs_sort_by_network_then_prefix() {
+    let mut v: Vec<Ipv4Cidr> = ["10.0.0.0/24", "10.0.0.0/25", "10.0.0.0/8", "192.168.0.0/16"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    v.sort();
+    let got: Vec<String> = v.iter().map(|c| c.to_string()).collect();
+    assert_eq!(
+        got,
+        vec!["10.0.0.0/8", "10.0.0.0/24", "10.0.0.0/25", "192.168.0.0/16"]
+    );
+}
