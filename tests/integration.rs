@@ -469,3 +469,13 @@ fn ipset_to_cidrs() {
     let covered: u128 = cidrs.iter().map(|c| c.address_count()).sum();
     assert_eq!(covered, range.count());
 }
+
+#[test]
+fn ipv6_aggregate_merges_siblings() {
+    let blocks: Vec<Ipv6Cidr> = ["2001:db8::/33", "2001:db8:8000::/33"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let merged = Ipv6Cidr::aggregate(&blocks);
+    assert_eq!(merged, vec!["2001:db8::/32".parse().unwrap()]);
+}

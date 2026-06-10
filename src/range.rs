@@ -218,6 +218,39 @@ impl Ipv4Cidr {
     }
 }
 
+impl Ipv6Cidr {
+    /// Collapse a list of IPv6 blocks into the **minimal** equivalent set — the
+    /// IPv6 analogue of [`Ipv4Cidr::aggregate`].
+    pub fn aggregate(cidrs: &[Ipv6Cidr]) -> Vec<Ipv6Cidr> {
+        if cidrs.is_empty() {
+            return Vec::new();
+        }
+        let mut intervals: Vec<(u128, u128)> = cidrs
+            .iter()
+            .map(|c| (c.network().to_bits(), c.last_address().to_bits()))
+            .collect();
+        intervals.sort_unstable();
+
+        let mut merged: Vec<(u128, u128)> = Vec::new();
+        for (s, e) in intervals {
+            match merged.last_mut() {
+                // `saturating_add` guards the top of the address space.
+                Some(last) if s <= last.1.saturating_add(1) => last.1 = last.1.max(e),
+                _ => merged.push((s, e)),
+            }
+        }
+
+        merged
+            .into_iter()
+            .flat_map(|(s, e)| {
+                Ipv6Range::new(Ipv6Addr::from_bits(s), Ipv6Addr::from_bits(e))
+                    .unwrap()
+                    .to_cidrs()
+            })
+            .collect()
+    }
+}
+
 impl FromStr for Ipv4Range {
     type Err = ParseError;
 
