@@ -306,6 +306,34 @@ impl Ipv4Cidr {
         }
     }
 
+    /// The wildcard mask (inverse netmask), as used in Cisco ACLs.
+    ///
+    /// For a `/24` this is `0.0.0.255`.
+    pub fn wildcard(&self) -> Ipv4Addr {
+        Ipv4Addr::from_bits(!self.netmask().to_bits())
+    }
+
+    /// The first usable host address.
+    ///
+    /// For `/30` and shorter this is the address just above the network; for
+    /// `/31` and `/32` it is the network address itself.
+    pub fn first_host(&self) -> Ipv4Addr {
+        self.hosts().next().unwrap_or_else(|| self.network())
+    }
+
+    /// The last usable host address.
+    ///
+    /// For `/30` and shorter this is the address just below the broadcast; for
+    /// `/31` and `/32` it is the broadcast address itself.
+    pub fn last_host(&self) -> Ipv4Addr {
+        let last = self.last_address().to_bits();
+        if self.prefix_len() <= 30 {
+            Ipv4Addr::from_bits(last - 1)
+        } else {
+            Ipv4Addr::from_bits(last)
+        }
+    }
+
     /// Iterate over the usable host addresses, excluding the network and
     /// broadcast addresses for `/30` and shorter prefixes. For `/31` and `/32`
     /// every address is yielded (per RFC 3021 / single-host conventions).

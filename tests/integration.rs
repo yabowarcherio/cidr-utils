@@ -281,3 +281,17 @@ fn cidrs_sort_by_network_then_prefix() {
         vec!["10.0.0.0/8", "10.0.0.0/24", "10.0.0.0/25", "192.168.0.0/16"]
     );
 }
+
+#[test]
+fn wildcard_and_host_bounds() {
+    let c: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+    assert_eq!(c.wildcard(), Ipv4Addr::new(0, 0, 0, 255));
+    assert_eq!(c.first_host(), Ipv4Addr::new(192, 168, 1, 1));
+    assert_eq!(c.last_host(), Ipv4Addr::new(192, 168, 1, 254));
+
+    // /32: first and last host are the address itself.
+    let h: Ipv4Cidr = "10.0.0.5/32".parse().unwrap();
+    assert_eq!(h.first_host(), Ipv4Addr::new(10, 0, 0, 5));
+    assert_eq!(h.last_host(), Ipv4Addr::new(10, 0, 0, 5));
+    assert_eq!(h.wildcard(), Ipv4Addr::new(0, 0, 0, 0));
+}
