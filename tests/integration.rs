@@ -337,3 +337,21 @@ fn ipv6_classification() {
     assert!("::/128".parse::<Ipv6Cidr>().unwrap().is_unspecified());
     assert!(!"2001:db8::/32".parse::<Ipv6Cidr>().unwrap().is_multicast());
 }
+
+#[test]
+fn ipcidr_enum_surface() {
+    let a: IpCidr = "10.0.0.0/8".parse().unwrap();
+    let b: IpCidr = "10.1.2.0/24".parse().unwrap();
+    assert!(a.contains_subnet(&b));
+    assert!(a.overlaps(&b));
+    assert_eq!(a.netmask(), "255.0.0.0".parse::<IpAddr>().unwrap());
+    assert_eq!(
+        b.supernet().unwrap(),
+        "10.1.2.0/23".parse::<IpCidr>().unwrap()
+    );
+
+    // Cross-family comparisons are always false.
+    let v6: IpCidr = "2001:db8::/32".parse().unwrap();
+    assert!(!a.contains_subnet(&v6));
+    assert!(!a.overlaps(&v6));
+}

@@ -464,6 +464,43 @@ impl IpCidr {
         }
     }
 
+    /// The network mask as an address.
+    pub fn netmask(&self) -> IpAddr {
+        match self {
+            IpCidr::V4(c) => IpAddr::V4(c.netmask()),
+            IpCidr::V6(c) => IpAddr::V6(c.netmask()),
+        }
+    }
+
+    /// The immediately enclosing block, one prefix bit shorter, or `None` for a
+    /// `/0`.
+    pub fn supernet(&self) -> Option<IpCidr> {
+        match self {
+            IpCidr::V4(c) => c.supernet().map(IpCidr::V4),
+            IpCidr::V6(c) => c.supernet().map(IpCidr::V6),
+        }
+    }
+
+    /// Returns `true` if `other` is fully contained in this block. A mismatched
+    /// address family always returns `false`.
+    pub fn contains_subnet(&self, other: &IpCidr) -> bool {
+        match (self, other) {
+            (IpCidr::V4(a), IpCidr::V4(b)) => a.contains_subnet(b),
+            (IpCidr::V6(a), IpCidr::V6(b)) => a.contains_subnet(b),
+            _ => false,
+        }
+    }
+
+    /// Returns `true` if the two blocks share at least one address. A
+    /// mismatched address family always returns `false`.
+    pub fn overlaps(&self, other: &IpCidr) -> bool {
+        match (self, other) {
+            (IpCidr::V4(a), IpCidr::V4(b)) => a.overlaps(b),
+            (IpCidr::V6(a), IpCidr::V6(b)) => a.overlaps(b),
+            _ => false,
+        }
+    }
+
     /// The total number of addresses in the block.
     pub fn address_count(&self) -> u128 {
         match self {
