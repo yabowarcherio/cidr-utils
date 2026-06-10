@@ -12,7 +12,7 @@ use std::net::IpAddr;
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use cidr_utils::{IpCidr, IpSet};
+use cidr_utils::{IpCidr, IpSet, Ipv4Cidr, Ipv6Cidr};
 use clap::Parser;
 
 /// Parse, enumerate, and test IPv4/IPv6 CIDR blocks and address ranges.
@@ -54,6 +54,10 @@ struct Cli {
     /// Print each target as its minimal set of aligned CIDR blocks.
     #[arg(long, conflicts_with_all = ["count", "info", "contains"])]
     cidrs: bool,
+
+    /// Merge all targets into the minimal equivalent set of CIDR blocks.
+    #[arg(long, conflicts_with_all = ["count", "info", "contains", "cidrs"])]
+    aggregate: bool,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -161,6 +165,26 @@ fn main() -> ExitCode {
             for cidr in set.to_cidrs() {
                 let _ = writeln!(out, "{cidr}");
             }
+        }
+        return ExitCode::SUCCESS;
+    }
+
+    if cli.aggregate {
+        // Split by family, aggregate each, then print v4 blocks before v6.
+        let (mut v4, mut v6) = (Vec::new(), Vec::new());
+        for (_, set) in &parsed {
+            for cidr in set.to_cidrs() {
+                match cidr {
+                    IpCidr::V4(c) => v4.push(c),
+                    IpCidr::V6(c) => v6.push(c),
+                }
+            }
+        }
+        for c in Ipv4Cidr::aggregate(&v4) {
+            let _ = writeln!(out, "{c}");
+        }
+        for c in Ipv6Cidr::aggregate(&v6) {
+            let _ = writeln!(out, "{c}");
         }
         return ExitCode::SUCCESS;
     }

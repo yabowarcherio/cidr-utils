@@ -91,3 +91,13 @@ fn cidrs_flag_decomposes_range() {
     let lines: Vec<_> = s.lines().collect();
     assert_eq!(lines, vec!["10.0.0.0/25", "10.0.0.128/31", "10.0.0.130/32"]);
 }
+
+#[test]
+fn aggregate_flag_merges_targets() {
+    let out = bin()
+        .args(["--aggregate", "10.0.0.0/25", "10.0.0.128/25", "10.0.1.0/24"])
+        .output()
+        .unwrap();
+    let s = String::from_utf8(out.stdout).unwrap();
+    assert_eq!(s.lines().collect::<Vec<_>>(), vec!["10.0.0.0/23"]);
+}
