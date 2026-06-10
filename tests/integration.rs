@@ -295,3 +295,18 @@ fn wildcard_and_host_bounds() {
     assert_eq!(h.last_host(), Ipv4Addr::new(10, 0, 0, 5));
     assert_eq!(h.wildcard(), Ipv4Addr::new(0, 0, 0, 0));
 }
+
+#[test]
+fn parses_dotted_netmask_form() {
+    let from_mask: Ipv4Cidr = "192.168.1.0/255.255.255.0".parse().unwrap();
+    assert_eq!(from_mask, "192.168.1.0/24".parse().unwrap());
+
+    let slash30: Ipv4Cidr = "10.0.0.0/255.255.255.252".parse().unwrap();
+    assert_eq!(slash30.prefix_len(), 30);
+
+    // A non-contiguous mask is rejected.
+    assert!(matches!(
+        "10.0.0.0/255.0.255.0".parse::<Ipv4Cidr>().unwrap_err(),
+        ParseError::BadPrefix(_)
+    ));
+}

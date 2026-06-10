@@ -59,6 +59,13 @@ macro_rules! define_cidr {
                 }
             }
 
+            /// Convert a raw network mask to a prefix length, if the mask is a
+            /// valid contiguous run of leading ones (e.g. `255.255.255.0`).
+            fn prefix_from_mask(mask: $uint) -> Option<u8> {
+                let ones = mask.leading_ones() as u8;
+                (Self::mask_bits(ones) == mask).then_some(ones)
+            }
+
             /// The prefix length (number of leading network bits).
             #[inline]
             pub const fn prefix_len(&self) -> u8 {
@@ -234,10 +241,15 @@ macro_rules! define_cidr {
                     .ok_or_else(|| ParseError::BadPrefix(s.to_string()))?;
                 let addr = <$addr>::from_str(addr_str.trim())
                     .map_err(|_| ParseError::BadAddr(addr_str.to_string()))?;
-                let prefix_len = prefix_str
-                    .trim()
-                    .parse::<u8>()
-                    .map_err(|_| ParseError::BadPrefix(prefix_str.to_string()))?;
+                let prefix_str = prefix_str.trim();
+                let prefix_len = match prefix_str.parse::<u8>() {
+                    Ok(p) => p,
+                    // Fall back to a dotted/expanded netmask, e.g. 255.255.255.0.
+                    Err(_) => <$addr>::from_str(prefix_str)
+                        .ok()
+                        .and_then(|m| Self::prefix_from_mask(m.to_bits()))
+                        .ok_or_else(|| ParseError::BadPrefix(prefix_str.to_string()))?,
+                };
                 Self::new(addr, prefix_len)
             }
         }
