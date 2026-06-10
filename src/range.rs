@@ -9,7 +9,7 @@ use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
-use crate::cidr::{Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter};
+use crate::cidr::{Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter, Ipv6Cidr};
 use crate::error::ParseError;
 
 macro_rules! define_range {
@@ -124,6 +124,43 @@ impl Ipv4Range {
             let prefix = 32 - bits as u8;
             out.push(Ipv4Cidr::new(Ipv4Addr::from_bits(cur as u32), prefix).unwrap());
             cur += 1u64 << bits;
+        }
+        out
+    }
+}
+
+impl Ipv6Range {
+    /// Decompose this range into the **minimal** set of aligned CIDR blocks
+    /// that exactly cover it — the IPv6 analogue of [`Ipv4Range::to_cidrs`].
+    ///
+    /// ```
+    /// use cidr_utils::Ipv6Range;
+    /// let r: Ipv6Range = "2001:db8::-2001:db8::ff".parse().unwrap();
+    /// let cidrs: Vec<_> = r.to_cidrs().iter().map(|c| c.to_string()).collect();
+    /// assert_eq!(cidrs, ["2001:db8::/120"]);
+    /// ```
+    pub fn to_cidrs(&self) -> Vec<Ipv6Cidr> {
+        let (start, end) = (self.start, self.end);
+        let mut out = Vec::new();
+        let mut cur = start;
+        loop {
+            let align_bits = if cur == 0 { 128 } else { cur.trailing_zeros() };
+            let remaining = end - cur; // count - 1; avoids a +1 overflow
+            let count_bits = if remaining == u128::MAX {
+                128
+            } else {
+                127 - (remaining + 1).leading_zeros()
+            };
+            let bits = align_bits.min(count_bits);
+            let prefix = (128 - bits) as u8;
+            out.push(Ipv6Cidr::new(Ipv6Addr::from_bits(cur), prefix).unwrap());
+            if bits >= 128 {
+                break; // covered the whole space in one /0
+            }
+            match cur.checked_add(1u128 << bits) {
+                Some(next) if next <= end => cur = next,
+                _ => break,
+            }
         }
         out
     }

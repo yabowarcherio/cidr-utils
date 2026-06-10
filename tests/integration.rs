@@ -429,3 +429,24 @@ fn address_iter_size_hint_saturates_for_huge_ipv6() {
     assert_eq!(lower, usize::MAX);
     assert_eq!(upper, None);
 }
+
+#[test]
+fn ipv6_range_to_cidrs_covers_exactly() {
+    use cidr_utils::Ipv6Range;
+    let r: Ipv6Range = "2001:db8::-2001:db8::1ff".parse().unwrap();
+    let cidrs = r.to_cidrs();
+    let covered: u128 = cidrs.iter().map(|c| c.address_count()).sum();
+    assert_eq!(covered, r.count());
+    for w in cidrs.windows(2) {
+        assert!(w[0] < w[1]);
+    }
+}
+
+#[test]
+fn ipv6_range_to_cidrs_whole_space() {
+    use cidr_utils::Ipv6Range;
+    let r: Ipv6Range = "::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+        .parse()
+        .unwrap();
+    assert_eq!(r.to_cidrs(), vec!["::/0".parse().unwrap()]);
+}
