@@ -39,12 +39,15 @@ Arguments:
   <TARGET>...  CIDR blocks, ranges, or addresses. Use `-` to read from stdin.
 
 Options:
-  -c, --count          Print the number of addresses instead of listing them
-  -i, --info           Print a summary (network, broadcast, mask, count)
-  -a, --all            Include network/broadcast when listing (IPv4 blocks)
-  -l, --limit <N>      Stop after listing N addresses per target (0 = no limit)
-      --contains <IP>  Print which targets contain IP; exit 0 if any, else 1
-  -h, --help           Print help
+  -c, --count            Print the number of addresses instead of listing them
+  -i, --info             Print a summary (network, broadcast, mask, class, ...)
+  -a, --all              Include network/broadcast when listing (IPv4 blocks)
+  -l, --limit <N>        Stop after listing N addresses per target (0 = no limit)
+      --contains <IP>    Print which targets contain IP; exit 0 if any, else 1
+      --cidrs            Print each target as its minimal set of CIDR blocks
+      --aggregate        Merge all targets into the minimal set of CIDR blocks
+      --split <PREFIX>   Split each target into sub-blocks of this prefix length
+  -h, --help             Print help
   -V, --version
 ```
 
