@@ -310,3 +310,22 @@ fn parses_dotted_netmask_form() {
         ParseError::BadPrefix(_)
     ));
 }
+
+#[test]
+fn ipv4_classification() {
+    let private: Ipv4Cidr = "10.0.0.0/8".parse().unwrap();
+    assert!(private.is_private());
+    assert!(!private.is_loopback());
+
+    assert!("127.0.0.0/8".parse::<Ipv4Cidr>().unwrap().is_loopback());
+    assert!("169.254.0.0/16"
+        .parse::<Ipv4Cidr>()
+        .unwrap()
+        .is_link_local());
+    assert!("224.0.0.0/4".parse::<Ipv4Cidr>().unwrap().is_multicast());
+    assert!("192.0.2.0/24"
+        .parse::<Ipv4Cidr>()
+        .unwrap()
+        .is_documentation());
+    assert!(!"8.8.8.0/24".parse::<Ipv4Cidr>().unwrap().is_private());
+}

@@ -318,6 +318,35 @@ impl Ipv4Cidr {
         }
     }
 
+    /// `true` if the block sits in [RFC 1918] private space
+    /// (`10/8`, `172.16/12`, `192.168/16`).
+    ///
+    /// [RFC 1918]: https://datatracker.ietf.org/doc/html/rfc1918
+    pub fn is_private(&self) -> bool {
+        self.network().is_private()
+    }
+
+    /// `true` if the block is the loopback range (`127/8`).
+    pub fn is_loopback(&self) -> bool {
+        self.network().is_loopback()
+    }
+
+    /// `true` if the block is link-local (`169.254/16`).
+    pub fn is_link_local(&self) -> bool {
+        self.network().is_link_local()
+    }
+
+    /// `true` if the block is documentation space (`192.0.2/24`,
+    /// `198.51.100/24`, `203.0.113/24`).
+    pub fn is_documentation(&self) -> bool {
+        self.network().is_documentation()
+    }
+
+    /// `true` if the block is multicast (`224/4`).
+    pub fn is_multicast(&self) -> bool {
+        self.network().is_multicast()
+    }
+
     /// The wildcard mask (inverse netmask), as used in Cisco ACLs.
     ///
     /// For a `/24` this is `0.0.0.255`.
