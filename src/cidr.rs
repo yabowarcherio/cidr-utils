@@ -12,7 +12,7 @@ use crate::error::ParseError;
 /// methods (IPv4 broadcast, host-count conventions) differ and are written by
 /// hand below.
 macro_rules! define_cidr {
-    ($name:ident, $iter:ident, $addr:ty, $uint:ty, $bits:literal) => {
+    ($name:ident, $iter:ident, $subnets:ident, $addr:ty, $uint:ty, $bits:literal) => {
         /// A CIDR block: a network address paired with a prefix length.
         ///
         /// The stored network address is always canonical — host bits below the
@@ -114,6 +114,73 @@ macro_rules! define_cidr {
                     last: self.network | !Self::mask_bits(self.prefix_len),
                 }
             }
+
+            /// The immediately enclosing block, one prefix bit shorter.
+            ///
+            /// Returns `None` for a `/0`, which has no parent.
+            pub fn supernet(&self) -> Option<Self> {
+                if self.prefix_len == 0 {
+                    return None;
+                }
+                let parent = self.prefix_len - 1;
+                Some(Self {
+                    network: self.network & Self::mask_bits(parent),
+                    prefix_len: parent,
+                })
+            }
+
+            /// Split this block into the sub-blocks of length `new_prefix`.
+            ///
+            /// The returned iterator is empty if `new_prefix` is shorter than
+            /// this block's prefix or longer than [`Self::MAX_PREFIX_LEN`]. A
+            /// `new_prefix` equal to this block's prefix yields the block itself.
+            pub fn subnets(&self, new_prefix: u8) -> $subnets {
+                if new_prefix < self.prefix_len || new_prefix > $bits {
+                    return $subnets {
+                        next: None,
+                        last: 0,
+                        step: 0,
+                        new_prefix,
+                    };
+                }
+                let last_addr = self.network | !Self::mask_bits(self.prefix_len);
+                let last_network = last_addr & Self::mask_bits(new_prefix);
+                // Block size of the child prefix; wraps to 0 only for a `/0`
+                // child, which is single-shot so the step is never applied.
+                let step = (!Self::mask_bits(new_prefix)).wrapping_add(1);
+                $subnets {
+                    next: Some(self.network),
+                    last: last_network,
+                    step,
+                    new_prefix,
+                }
+            }
+        }
+
+        /// Iterator over the sub-blocks produced by `subnets`.
+        #[derive(Debug, Clone)]
+        pub struct $subnets {
+            next: Option<$uint>,
+            last: $uint,
+            step: $uint,
+            new_prefix: u8,
+        }
+
+        impl Iterator for $subnets {
+            type Item = $name;
+
+            fn next(&mut self) -> Option<$name> {
+                let cur = self.next?;
+                self.next = if cur >= self.last {
+                    None
+                } else {
+                    Some(cur + self.step)
+                };
+                Some($name {
+                    network: cur,
+                    prefix_len: self.new_prefix,
+                })
+            }
         }
 
         impl fmt::Display for $name {
@@ -179,8 +246,8 @@ macro_rules! define_cidr {
     };
 }
 
-define_cidr!(Ipv4Cidr, Ipv4AddrIter, Ipv4Addr, u32, 32);
-define_cidr!(Ipv6Cidr, Ipv6AddrIter, Ipv6Addr, u128, 128);
+define_cidr!(Ipv4Cidr, Ipv4AddrIter, Ipv4Subnets, Ipv4Addr, u32, 32);
+define_cidr!(Ipv6Cidr, Ipv6AddrIter, Ipv6Subnets, Ipv6Addr, u128, 128);
 
 impl Ipv4Cidr {
     /// The IPv4 broadcast address (highest address in the block).

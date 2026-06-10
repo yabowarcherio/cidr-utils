@@ -194,3 +194,49 @@ fn parse_errors_are_typed() {
         ParseError::BadAddr(_)
     ));
 }
+
+// --- Subnetting -----------------------------------------------------------
+
+#[test]
+fn supernet_walks_up_one_bit() {
+    let c: Ipv4Cidr = "192.168.1.128/25".parse().unwrap();
+    let parent = c.supernet().unwrap();
+    assert_eq!(parent, "192.168.1.0/24".parse().unwrap());
+    // A /0 has no parent.
+    assert!("0.0.0.0/0"
+        .parse::<Ipv4Cidr>()
+        .unwrap()
+        .supernet()
+        .is_none());
+}
+
+#[test]
+fn subnets_splits_into_children() {
+    let c: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+    let kids: Vec<Ipv4Cidr> = c.subnets(26).collect();
+    assert_eq!(kids.len(), 4);
+    assert_eq!(kids[0], "192.168.1.0/26".parse().unwrap());
+    assert_eq!(kids[1], "192.168.1.64/26".parse().unwrap());
+    assert_eq!(kids[2], "192.168.1.128/26".parse().unwrap());
+    assert_eq!(kids[3], "192.168.1.192/26".parse().unwrap());
+}
+
+#[test]
+fn subnets_same_prefix_is_self() {
+    let c: Ipv4Cidr = "10.0.0.0/8".parse().unwrap();
+    let kids: Vec<_> = c.subnets(8).collect();
+    assert_eq!(kids, vec![c]);
+}
+
+#[test]
+fn subnets_invalid_prefix_is_empty() {
+    let c: Ipv4Cidr = "10.0.0.0/8".parse().unwrap();
+    assert_eq!(c.subnets(4).count(), 0); // shorter than self
+    assert_eq!(c.subnets(33).count(), 0); // out of range
+}
+
+#[test]
+fn subnets_ipv6() {
+    let c: Ipv6Cidr = "2001:db8::/32".parse().unwrap();
+    assert_eq!(c.subnets(34).count(), 4);
+}
