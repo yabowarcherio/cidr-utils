@@ -9,7 +9,7 @@ use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
-use crate::cidr::{Ipv4AddrIter, Ipv6AddrIter};
+use crate::cidr::{Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter};
 use crate::error::ParseError;
 
 macro_rules! define_range {
@@ -88,6 +88,46 @@ macro_rules! define_range {
 
 define_range!(Ipv4Range, Ipv4AddrIter, Ipv4Addr, u32);
 define_range!(Ipv6Range, Ipv6AddrIter, Ipv6Addr, u128);
+
+impl Ipv4Range {
+    /// Decompose this range into the **minimal** set of aligned CIDR blocks
+    /// that exactly cover it.
+    ///
+    /// Any inclusive range can be covered by a handful of power-of-two blocks;
+    /// this is the standard greedy algorithm that, at each step, emits the
+    /// largest block that is both aligned to the current address and fits
+    /// inside the remaining range. The returned blocks are in ascending order
+    /// and do not overlap.
+    ///
+    /// ```
+    /// use cidr_utils::Ipv4Range;
+    /// let r: Ipv4Range = "192.168.1.0-192.168.1.130".parse().unwrap();
+    /// let cidrs: Vec<_> = r.to_cidrs().iter().map(|c| c.to_string()).collect();
+    /// assert_eq!(cidrs, ["192.168.1.0/25", "192.168.1.128/31", "192.168.1.130/32"]);
+    /// ```
+    pub fn to_cidrs(&self) -> Vec<Ipv4Cidr> {
+        let mut out = Vec::new();
+        // Work in u64 so `cur + block_size` can step one past u32::MAX cleanly.
+        let end = u64::from(self.end);
+        let mut cur = u64::from(self.start);
+        while cur <= end {
+            // Largest block aligned to `cur` (a /0 may start only at 0).
+            let align_bits = if cur == 0 {
+                32
+            } else {
+                (cur as u32).trailing_zeros()
+            };
+            // Largest power-of-two block that still fits the remaining count.
+            let remaining = end - cur + 1;
+            let count_bits = 63 - remaining.leading_zeros();
+            let bits = align_bits.min(count_bits);
+            let prefix = 32 - bits as u8;
+            out.push(Ipv4Cidr::new(Ipv4Addr::from_bits(cur as u32), prefix).unwrap());
+            cur += 1u64 << bits;
+        }
+        out
+    }
+}
 
 impl FromStr for Ipv4Range {
     type Err = ParseError;

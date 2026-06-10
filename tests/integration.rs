@@ -355,3 +355,32 @@ fn ipcidr_enum_surface() {
     assert!(!a.contains_subnet(&v6));
     assert!(!a.overlaps(&v6));
 }
+
+#[test]
+fn range_to_cidrs_covers_exactly() {
+    let r: Ipv4Range = "192.168.1.0-192.168.1.130".parse().unwrap();
+    let cidrs = r.to_cidrs();
+    // Reconstruct the covered address count and check it matches the range.
+    let covered: u128 = cidrs.iter().map(|c| c.address_count()).sum();
+    assert_eq!(covered, r.count());
+    // Blocks must be non-overlapping and ascending.
+    for w in cidrs.windows(2) {
+        assert!(!w[0].overlaps(&w[1]));
+        assert!(w[0] < w[1]);
+    }
+}
+
+#[test]
+fn range_to_cidrs_aligned_block_is_single() {
+    let r: Ipv4Range = "10.0.0.0-10.0.0.255".parse().unwrap();
+    let cidrs = r.to_cidrs();
+    assert_eq!(cidrs.len(), 1);
+    assert_eq!(cidrs[0], "10.0.0.0/24".parse().unwrap());
+}
+
+#[test]
+fn range_to_cidrs_whole_space() {
+    let r: Ipv4Range = "0.0.0.0-255.255.255.255".parse().unwrap();
+    let cidrs = r.to_cidrs();
+    assert_eq!(cidrs, vec!["0.0.0.0/0".parse().unwrap()]);
+}
