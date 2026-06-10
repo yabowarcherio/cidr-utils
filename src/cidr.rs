@@ -174,6 +174,17 @@ macro_rules! define_cidr {
             pub fn is_subnet_of(&self, other: &Self) -> bool {
                 other.contains_subnet(self)
             }
+
+            /// Returns `true` if the two blocks share at least one address.
+            ///
+            /// For nested CIDR blocks this is always true; it is primarily
+            /// useful when neither block contains the other in a list of
+            /// arbitrary blocks.
+            pub fn overlaps(&self, other: &Self) -> bool {
+                let a_last = self.network | !Self::mask_bits(self.prefix_len);
+                let b_last = other.network | !Self::mask_bits(other.prefix_len);
+                self.network <= b_last && other.network <= a_last
+            }
         }
 
         /// Iterator over the sub-blocks produced by `subnets`.

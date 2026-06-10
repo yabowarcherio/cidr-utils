@@ -256,3 +256,14 @@ fn subnet_supernet_predicates() {
     // A block always contains itself.
     assert!(big.contains_subnet(&big));
 }
+
+#[test]
+fn overlaps_detects_intersection() {
+    let a: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    let nested: Ipv4Cidr = "10.0.0.128/25".parse().unwrap();
+    let disjoint: Ipv4Cidr = "10.0.1.0/24".parse().unwrap();
+    assert!(a.overlaps(&nested));
+    assert!(nested.overlaps(&a));
+    assert!(!a.overlaps(&disjoint));
+    assert!(a.overlaps(&a));
+}
