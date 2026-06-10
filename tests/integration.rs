@@ -479,3 +479,14 @@ fn ipv6_aggregate_merges_siblings() {
     let merged = Ipv6Cidr::aggregate(&blocks);
     assert_eq!(merged, vec!["2001:db8::/32".parse().unwrap()]);
 }
+
+#[test]
+fn ipset_first_and_last() {
+    let cidr: IpSet = "192.168.1.0/24".parse().unwrap();
+    assert_eq!(cidr.first(), "192.168.1.0".parse::<IpAddr>().unwrap());
+    assert_eq!(cidr.last(), "192.168.1.255".parse::<IpAddr>().unwrap());
+
+    let range: IpSet = "10.0.0.5-10.0.0.9".parse().unwrap();
+    assert_eq!(range.first(), "10.0.0.5".parse::<IpAddr>().unwrap());
+    assert_eq!(range.last(), "10.0.0.9".parse::<IpAddr>().unwrap());
+}

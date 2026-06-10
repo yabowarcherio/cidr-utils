@@ -35,6 +35,22 @@ impl IpSet {
         }
     }
 
+    /// The lowest address in the target.
+    pub fn first(&self) -> IpAddr {
+        match self {
+            IpSet::Cidr(c) => c.network(),
+            IpSet::Range(r) => r.start(),
+        }
+    }
+
+    /// The highest address in the target.
+    pub fn last(&self) -> IpAddr {
+        match self {
+            IpSet::Cidr(c) => c.last_address(),
+            IpSet::Range(r) => r.end(),
+        }
+    }
+
     /// Returns `true` if `addr` belongs to this target.
     pub fn contains(&self, addr: IpAddr) -> bool {
         match self {
