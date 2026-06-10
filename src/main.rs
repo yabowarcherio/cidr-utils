@@ -50,6 +50,10 @@ struct Cli {
     /// Test whether the given address is contained in any target, then exit.
     #[arg(long, value_name = "IP")]
     contains: Option<IpAddr>,
+
+    /// Print each target as its minimal set of aligned CIDR blocks.
+    #[arg(long, conflicts_with_all = ["count", "info", "contains"])]
+    cidrs: bool,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -148,6 +152,15 @@ fn main() -> ExitCode {
     if cli.count {
         for (_, set) in &parsed {
             let _ = writeln!(out, "{}", set.count());
+        }
+        return ExitCode::SUCCESS;
+    }
+
+    if cli.cidrs {
+        for (_, set) in &parsed {
+            for cidr in set.to_cidrs() {
+                let _ = writeln!(out, "{cidr}");
+            }
         }
         return ExitCode::SUCCESS;
     }

@@ -79,3 +79,15 @@ fn info_reports_broadcast() {
     assert!(s.contains("broadcast: 192.168.1.255"));
     assert!(s.contains("hosts:     254"));
 }
+
+#[test]
+fn cidrs_flag_decomposes_range() {
+    let out = bin()
+        .args(["--cidrs", "10.0.0.0-10.0.0.130"])
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let s = String::from_utf8(out.stdout).unwrap();
+    let lines: Vec<_> = s.lines().collect();
+    assert_eq!(lines, vec!["10.0.0.0/25", "10.0.0.128/31", "10.0.0.130/32"]);
+}
