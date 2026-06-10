@@ -117,6 +117,36 @@ assert!(block.contains(Ipv4Addr::new(192, 168, 0, 50)));
 `IpRange` / `IpSet` enums round out the API. Enable the `serde` feature to
 derive `Serialize`/`Deserialize` on all of them.
 
+## More capabilities
+
+```rust
+use cidr_utils::{Ipv4Cidr, Ipv4Range};
+
+// Walk the block hierarchy.
+let block: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+assert_eq!(block.subnets(26).count(), 4);
+assert_eq!(block.supernet().unwrap(), "192.168.1.0/23".parse().unwrap());
+
+// Decompose an arbitrary range into aligned CIDR blocks.
+let r: Ipv4Range = "192.168.1.0-192.168.1.130".parse().unwrap();
+let cidrs: Vec<_> = r.to_cidrs().iter().map(|c| c.to_string()).collect();
+assert_eq!(cidrs, ["192.168.1.0/25", "192.168.1.128/31", "192.168.1.130/32"]);
+
+// Merge a messy list of blocks into the minimal set.
+let blocks: Vec<Ipv4Cidr> = ["10.0.0.0/25", "10.0.0.128/25", "10.0.1.0/24"]
+    .iter().map(|s| s.parse().unwrap()).collect();
+let merged: Vec<_> = Ipv4Cidr::aggregate(&blocks).iter().map(|c| c.to_string()).collect();
+assert_eq!(merged, ["10.0.0.0/23"]);
+
+// Classify and inspect.
+assert!("10.0.0.0/8".parse::<Ipv4Cidr>().unwrap().is_private());
+assert_eq!(block.wildcard().to_string(), "0.0.0.255");
+```
+
+The CLI exposes the same: `--cidrs` (decompose), `--aggregate` (merge),
+`--split <PREFIX>` (subnet), and `--info` (now including the wildcard mask and
+address class).
+
 ## Design notes
 
 - **No networking.** This crate is pure address arithmetic; it never resolves

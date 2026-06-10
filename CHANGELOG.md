@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Block hierarchy: `supernet()`, `subnets(prefix)`, `contains_subnet`,
+  `is_subnet_of`, `is_supernet_of`, and `overlaps` on the CIDR types.
+- IPv4 helpers: `wildcard()`, `first_host()`, `last_host()`, and classification
+  predicates (`is_private`, `is_loopback`, `is_link_local`, `is_documentation`,
+  `is_multicast`); IPv6 `is_loopback`/`is_multicast`/`is_unspecified`.
+- Range/CIDR conversion: `Ipv4Range::to_cidrs`, `Ipv6Range::to_cidrs`,
+  `IpRange::to_cidrs`, and `IpSet::to_cidrs` for minimal CIDR decomposition.
+- Aggregation: `Ipv4Cidr::aggregate` / `Ipv6Cidr::aggregate` to merge a list of
+  blocks into the minimal equivalent set.
+- `Ord`/`PartialOrd` on the CIDR types for canonical sorting.
+- Parsing now accepts the dotted-netmask form (`192.168.1.0/255.255.255.0`).
+- `size_hint` on the address iterators (exact for IPv4).
+- CLI: `--cidrs`, `--aggregate`, `--split <PREFIX>`, and a wildcard mask plus
+  address class in `--info`.
+- Criterion benchmarks for parsing, containment, and decomposition.
+
 ## [0.1.0]
 
 Initial release.

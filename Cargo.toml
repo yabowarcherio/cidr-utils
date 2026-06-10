@@ -14,6 +14,7 @@ keywords = ["cidr", "ip", "subnet", "ipv4", "ipv6"]
 categories = ["network-programming", "command-line-utilities", "parsing"]
 exclude = [
     ".github/",
+    "benches/",
     "deny.toml",
 ]
 
