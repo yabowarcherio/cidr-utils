@@ -129,6 +129,58 @@ impl Ipv4Range {
     }
 }
 
+impl Ipv4Cidr {
+    /// Collapse a list of IPv4 blocks into the **minimal** equivalent set,
+    /// merging overlapping, adjacent, and contained blocks.
+    ///
+    /// The result covers exactly the same addresses as the input, sorted and
+    /// non-overlapping, with adjacent siblings combined into larger blocks where
+    /// possible.
+    ///
+    /// ```
+    /// use cidr_utils::Ipv4Cidr;
+    /// let blocks: Vec<Ipv4Cidr> = ["10.0.0.0/25", "10.0.0.128/25", "10.0.1.0/24"]
+    ///     .iter().map(|s| s.parse().unwrap()).collect();
+    /// let merged: Vec<_> = Ipv4Cidr::aggregate(&blocks).iter().map(|c| c.to_string()).collect();
+    /// assert_eq!(merged, ["10.0.0.0/23"]);
+    /// ```
+    pub fn aggregate(cidrs: &[Ipv4Cidr]) -> Vec<Ipv4Cidr> {
+        if cidrs.is_empty() {
+            return Vec::new();
+        }
+        // Reduce to inclusive [start, end] intervals over a u64 number line.
+        let mut intervals: Vec<(u64, u64)> = cidrs
+            .iter()
+            .map(|c| {
+                (
+                    u64::from(c.network().to_bits()),
+                    u64::from(c.broadcast().to_bits()),
+                )
+            })
+            .collect();
+        intervals.sort_unstable();
+
+        // Merge overlapping or directly adjacent intervals.
+        let mut merged: Vec<(u64, u64)> = Vec::new();
+        for (s, e) in intervals {
+            match merged.last_mut() {
+                Some(last) if s <= last.1 + 1 => last.1 = last.1.max(e),
+                _ => merged.push((s, e)),
+            }
+        }
+
+        // Re-decompose each merged span into aligned blocks.
+        merged
+            .into_iter()
+            .flat_map(|(s, e)| {
+                Ipv4Range::new(Ipv4Addr::from_bits(s as u32), Ipv4Addr::from_bits(e as u32))
+                    .unwrap()
+                    .to_cidrs()
+            })
+            .collect()
+    }
+}
+
 impl FromStr for Ipv4Range {
     type Err = ParseError;
 

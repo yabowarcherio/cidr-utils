@@ -384,3 +384,28 @@ fn range_to_cidrs_whole_space() {
     let cidrs = r.to_cidrs();
     assert_eq!(cidrs, vec!["0.0.0.0/0".parse().unwrap()]);
 }
+
+#[test]
+fn aggregate_merges_siblings_and_contained() {
+    let blocks: Vec<Ipv4Cidr> = ["10.0.0.0/25", "10.0.0.128/25", "10.0.0.0/24", "10.0.1.0/24"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let merged = Ipv4Cidr::aggregate(&blocks);
+    assert_eq!(merged, vec!["10.0.0.0/23".parse().unwrap()]);
+}
+
+#[test]
+fn aggregate_keeps_disjoint_blocks() {
+    let blocks: Vec<Ipv4Cidr> = ["10.0.0.0/24", "192.168.0.0/24"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let merged = Ipv4Cidr::aggregate(&blocks);
+    assert_eq!(merged.len(), 2);
+}
+
+#[test]
+fn aggregate_empty_is_empty() {
+    assert!(Ipv4Cidr::aggregate(&[]).is_empty());
+}
