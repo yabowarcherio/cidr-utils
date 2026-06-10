@@ -43,6 +43,17 @@ impl IpSet {
         }
     }
 
+    /// The target as a set of aligned CIDR blocks.
+    ///
+    /// A CIDR target yields itself; a range is decomposed into the minimal set
+    /// of blocks that exactly cover it.
+    pub fn to_cidrs(&self) -> Vec<IpCidr> {
+        match self {
+            IpSet::Cidr(c) => vec![*c],
+            IpSet::Range(r) => r.to_cidrs(),
+        }
+    }
+
     /// Iterate over every address in the target, lowest to highest.
     ///
     /// For a CIDR block this includes the network and broadcast addresses; use

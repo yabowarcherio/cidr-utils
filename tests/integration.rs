@@ -458,3 +458,14 @@ fn iprange_to_cidrs_is_family_aware() {
     assert_eq!(c4, vec!["10.0.0.0/24".parse::<IpCidr>().unwrap()]);
     assert!(c4.iter().all(|c| c.is_ipv4()));
 }
+
+#[test]
+fn ipset_to_cidrs() {
+    let cidr: IpSet = "10.0.0.0/24".parse().unwrap();
+    assert_eq!(cidr.to_cidrs().len(), 1);
+
+    let range: IpSet = "10.0.0.0-10.0.0.130".parse().unwrap();
+    let cidrs = range.to_cidrs();
+    let covered: u128 = cidrs.iter().map(|c| c.address_count()).sum();
+    assert_eq!(covered, range.count());
+}
