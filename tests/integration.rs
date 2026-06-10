@@ -240,3 +240,19 @@ fn subnets_ipv6() {
     let c: Ipv6Cidr = "2001:db8::/32".parse().unwrap();
     assert_eq!(c.subnets(34).count(), 4);
 }
+
+#[test]
+fn subnet_supernet_predicates() {
+    let big: Ipv4Cidr = "10.0.0.0/8".parse().unwrap();
+    let small: Ipv4Cidr = "10.1.2.0/24".parse().unwrap();
+    assert!(big.contains_subnet(&small));
+    assert!(big.is_supernet_of(&small));
+    assert!(small.is_subnet_of(&big));
+    assert!(!small.is_supernet_of(&big));
+
+    let other: Ipv4Cidr = "11.0.0.0/24".parse().unwrap();
+    assert!(!big.contains_subnet(&other));
+
+    // A block always contains itself.
+    assert!(big.contains_subnet(&big));
+}

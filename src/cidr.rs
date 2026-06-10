@@ -155,6 +155,25 @@ macro_rules! define_cidr {
                     new_prefix,
                 }
             }
+
+            /// Returns `true` if `other` is fully contained in this block — the
+            /// same network bits and a prefix at least as long.
+            pub fn contains_subnet(&self, other: &Self) -> bool {
+                self.prefix_len <= other.prefix_len
+                    && (other.network & Self::mask_bits(self.prefix_len)) == self.network
+            }
+
+            /// Returns `true` if this block is a supernet of (encloses) `other`.
+            /// Equivalent to `self.contains_subnet(other)`.
+            pub fn is_supernet_of(&self, other: &Self) -> bool {
+                self.contains_subnet(other)
+            }
+
+            /// Returns `true` if this block is a subnet of (is enclosed by)
+            /// `other`.
+            pub fn is_subnet_of(&self, other: &Self) -> bool {
+                other.contains_subnet(self)
+            }
         }
 
         /// Iterator over the sub-blocks produced by `subnets`.
