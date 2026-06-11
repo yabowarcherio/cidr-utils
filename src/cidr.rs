@@ -178,6 +178,26 @@ macro_rules! define_cidr {
                 }
             }
 
+            /// Split this block into its two equal halves (each one prefix bit
+            /// longer), or `None` if the block is already a single address
+            /// (`/32` for IPv4, `/128` for IPv6).
+            pub fn split(&self) -> Option<(Self, Self)> {
+                if self.prefix_len >= $bits {
+                    return None;
+                }
+                let child = self.prefix_len + 1;
+                let half_bit: $uint = 1 << ($bits - child as u32);
+                let lower = Self {
+                    network: self.network,
+                    prefix_len: child,
+                };
+                let upper = Self {
+                    network: self.network | half_bit,
+                    prefix_len: child,
+                };
+                Some((lower, upper))
+            }
+
             /// Returns `true` if `other` is fully contained in this block — the
             /// same network bits and a prefix at least as long.
             pub fn contains_subnet(&self, other: &Self) -> bool {

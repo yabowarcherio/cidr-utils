@@ -598,3 +598,17 @@ fn nth_address_ipv6() {
     assert_eq!(c.nth_address(255), c.addresses().next_back());
     assert_eq!(c.nth_address(256), None);
 }
+
+#[test]
+fn split_halves_a_block() {
+    let c: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    let (lo, hi) = c.split().unwrap();
+    assert_eq!(lo, "10.0.0.0/25".parse().unwrap());
+    assert_eq!(hi, "10.0.0.128/25".parse().unwrap());
+    // The two halves exactly partition the parent.
+    assert_eq!(lo.address_count() + hi.address_count(), c.address_count());
+    assert!(!lo.overlaps(&hi));
+
+    // A single host cannot be split.
+    assert!("10.0.0.1/32".parse::<Ipv4Cidr>().unwrap().split().is_none());
+}
