@@ -384,6 +384,16 @@ impl IpRange {
         }
     }
 
+    /// Returns `true` if `other` is entirely within this range. A mismatched
+    /// address family always returns `false`.
+    pub fn contains_range(&self, other: &IpRange) -> bool {
+        match (self, other) {
+            (IpRange::V4(a), IpRange::V4(b)) => a.contains_range(b),
+            (IpRange::V6(a), IpRange::V6(b)) => a.contains_range(b),
+            _ => false,
+        }
+    }
+
     /// Iterate over every address in the range as [`IpAddr`], lowest to highest.
     pub fn addresses(&self) -> IpSetIter {
         match self {

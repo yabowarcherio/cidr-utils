@@ -766,3 +766,13 @@ fn exclude_then_aggregate_reconstructs_block() {
         }
     }
 }
+
+#[test]
+fn iprange_contains_range_delegation() {
+    let outer: IpRange = "10.0.0.1-10.0.0.100".parse().unwrap();
+    let inner: IpRange = "10.0.0.10-10.0.0.20".parse().unwrap();
+    assert!(outer.contains_range(&inner));
+    assert!(!inner.contains_range(&outer));
+    let v6: IpRange = "::1-::5".parse().unwrap();
+    assert!(!outer.contains_range(&v6));
+}
