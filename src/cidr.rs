@@ -118,10 +118,10 @@ macro_rules! define_cidr {
             /// For large IPv6 blocks this iterator is effectively unbounded —
             /// prefer [`contains`](Self::contains) or a bounded range.
             pub fn addresses(&self) -> $iter {
-                $iter {
-                    next: Some(self.network),
-                    last: self.network | !Self::mask_bits(self.prefix_len),
-                }
+                $iter::bounded(
+                    self.network,
+                    self.network | !Self::mask_bits(self.prefix_len),
+                )
             }
 
             /// The immediately enclosing block, one prefix bit shorter.
@@ -257,19 +257,23 @@ macro_rules! define_cidr {
         /// Iterator over a contiguous run of addresses, lowest to highest.
         ///
         /// Yielded by both CIDR blocks and address ranges of this family.
+        /// Implements [`DoubleEndedIterator`], so it can be walked from the top
+        /// with [`Iterator::rev`] or [`DoubleEndedIterator::next_back`].
         #[derive(Debug, Clone)]
         pub struct $iter {
-            next: Option<$uint>,
-            last: $uint,
+            front: $uint,
+            back: $uint,
+            done: bool,
         }
 
         impl $iter {
             /// Construct an inclusive iterator over `first..=last` raw values.
-            /// Callers must ensure `first <= last`.
+            /// An empty iterator results when `first > last`.
             pub(crate) fn bounded(first: $uint, last: $uint) -> Self {
                 $iter {
-                    next: Some(first),
-                    last,
+                    front: first,
+                    back: last,
+                    done: first > last,
                 }
             }
         }
@@ -278,30 +282,46 @@ macro_rules! define_cidr {
             type Item = $addr;
 
             fn next(&mut self) -> Option<$addr> {
-                let cur = self.next?;
-                self.next = if cur >= self.last {
-                    None
+                if self.done {
+                    return None;
+                }
+                let cur = self.front;
+                if cur == self.back {
+                    self.done = true;
                 } else {
-                    Some(cur + 1)
-                };
+                    self.front = cur + 1;
+                }
                 Some(<$addr>::from_bits(cur))
             }
 
             fn size_hint(&self) -> (usize, Option<usize>) {
-                match self.next {
-                    None => (0, Some(0)),
-                    Some(cur) => {
-                        // `span` is the count minus one, widened so the IPv4
-                        // case never overflows. `u128::from` is an identity
-                        // conversion for the IPv6 (`u128`) instantiation.
-                        let span = u128::from(self.last) - u128::from(cur);
-                        match usize::try_from(span) {
-                            Ok(n) if n != usize::MAX => (n + 1, Some(n + 1)),
-                            // Count exceeds `usize` (only possible for IPv6).
-                            _ => (usize::MAX, None),
-                        }
-                    }
+                if self.done {
+                    return (0, Some(0));
                 }
+                // `span` is the count minus one, widened so the IPv4 case never
+                // overflows. `u128::from` is an identity conversion for the IPv6
+                // (`u128`) instantiation.
+                let span = u128::from(self.back) - u128::from(self.front);
+                match usize::try_from(span) {
+                    Ok(n) if n != usize::MAX => (n + 1, Some(n + 1)),
+                    // Count exceeds `usize` (only possible for IPv6).
+                    _ => (usize::MAX, None),
+                }
+            }
+        }
+
+        impl DoubleEndedIterator for $iter {
+            fn next_back(&mut self) -> Option<$addr> {
+                if self.done {
+                    return None;
+                }
+                let cur = self.back;
+                if cur == self.front {
+                    self.done = true;
+                } else {
+                    self.back = cur - 1;
+                }
+                Some(<$addr>::from_bits(cur))
             }
         }
     };
@@ -399,15 +419,9 @@ impl Ipv4Cidr {
         let first = self.network;
         let last = self.last_address().to_bits();
         if self.prefix_len() <= 30 {
-            Ipv4AddrIter {
-                next: Some(first + 1),
-                last: last - 1,
-            }
+            Ipv4AddrIter::bounded(first + 1, last - 1)
         } else {
-            Ipv4AddrIter {
-                next: Some(first),
-                last,
-            }
+            Ipv4AddrIter::bounded(first, last)
         }
     }
 }

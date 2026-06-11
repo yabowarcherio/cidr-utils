@@ -490,3 +490,41 @@ fn ipset_first_and_last() {
     assert_eq!(range.first(), "10.0.0.5".parse::<IpAddr>().unwrap());
     assert_eq!(range.last(), "10.0.0.9".parse::<IpAddr>().unwrap());
 }
+
+// --- Reverse iteration ----------------------------------------------------
+
+#[test]
+fn addresses_iterate_in_reverse() {
+    let c: Ipv4Cidr = "192.168.1.0/30".parse().unwrap();
+    let rev: Vec<_> = c.addresses().rev().collect();
+    assert_eq!(
+        rev,
+        vec![
+            Ipv4Addr::new(192, 168, 1, 3),
+            Ipv4Addr::new(192, 168, 1, 2),
+            Ipv4Addr::new(192, 168, 1, 1),
+            Ipv4Addr::new(192, 168, 1, 0),
+        ]
+    );
+}
+
+#[test]
+fn double_ended_meets_in_middle() {
+    let c: Ipv4Cidr = "10.0.0.0/29".parse().unwrap(); // 8 addresses
+    let mut it = c.addresses();
+    let first = it.next().unwrap();
+    let last = it.next_back().unwrap();
+    assert_eq!(first, Ipv4Addr::new(10, 0, 0, 0));
+    assert_eq!(last, Ipv4Addr::new(10, 0, 0, 7));
+    // The remaining six are yielded without duplication or omission.
+    assert_eq!(it.count(), 6);
+}
+
+#[test]
+fn hosts_reverse_excludes_network_broadcast() {
+    let c: Ipv4Cidr = "192.168.1.0/29".parse().unwrap();
+    let fwd: Vec<_> = c.hosts().collect();
+    let mut rev: Vec<_> = c.hosts().rev().collect();
+    rev.reverse();
+    assert_eq!(fwd, rev);
+}
