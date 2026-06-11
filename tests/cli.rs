@@ -151,3 +151,13 @@ fn reverse_flag_lists_descending() {
     // Hosts of /30 are .1 and .2; reversed -> .2 then .1.
     assert_eq!(lines, vec!["192.168.1.2", "192.168.1.1"]);
 }
+
+#[test]
+fn total_flag_sums_addresses() {
+    let out = bin()
+        .args(["--total", "10.0.0.0/24", "10.0.1.0/24"])
+        .output()
+        .unwrap();
+    let s = String::from_utf8(out.stdout).unwrap();
+    assert_eq!(s.trim(), "512");
+}

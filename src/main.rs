@@ -70,6 +70,10 @@ struct Cli {
     /// List addresses from highest to lowest instead of lowest to highest.
     #[arg(short, long)]
     reverse: bool,
+
+    /// Print the total number of addresses across all targets, then exit.
+    #[arg(long, conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude"])]
+    total: bool,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -188,6 +192,12 @@ fn main() -> ExitCode {
         for (_, set) in &parsed {
             let _ = writeln!(out, "{}", set.count());
         }
+        return ExitCode::SUCCESS;
+    }
+
+    if cli.total {
+        let sum: u128 = parsed.iter().map(|(_, set)| set.count()).sum();
+        let _ = writeln!(out, "{sum}");
         return ExitCode::SUCCESS;
     }
 
