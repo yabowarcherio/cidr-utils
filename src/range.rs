@@ -11,6 +11,7 @@ use std::str::FromStr;
 
 use crate::cidr::{IpCidr, Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter, Ipv6Cidr};
 use crate::error::ParseError;
+use crate::set::IpSetIter;
 
 macro_rules! define_range {
     ($name:ident, $iter:ident, $addr:ty, $uint:ty) => {
@@ -360,6 +361,14 @@ impl IpRange {
             (IpRange::V4(r), IpAddr::V4(a)) => r.contains(a),
             (IpRange::V6(r), IpAddr::V6(a)) => r.contains(a),
             _ => false,
+        }
+    }
+
+    /// Iterate over every address in the range as [`IpAddr`], lowest to highest.
+    pub fn addresses(&self) -> IpSetIter {
+        match self {
+            IpRange::V4(r) => IpSetIter::V4(r.iter()),
+            IpRange::V6(r) => IpSetIter::V6(r.iter()),
         }
     }
 

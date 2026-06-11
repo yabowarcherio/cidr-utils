@@ -631,3 +631,12 @@ fn ipcidr_iterates_addresses_and_hosts() {
     let first = c.addresses().next().unwrap();
     assert_eq!(first, "192.168.1.0".parse::<IpAddr>().unwrap());
 }
+
+#[test]
+fn iprange_iterates_addresses() {
+    let r: IpRange = "10.0.0.1-10.0.0.4".parse().unwrap();
+    let v: Vec<_> = r.addresses().collect();
+    assert_eq!(v.len(), 4);
+    assert_eq!(v[0], "10.0.0.1".parse::<IpAddr>().unwrap());
+    assert_eq!(v[3], "10.0.0.4".parse::<IpAddr>().unwrap());
+}
