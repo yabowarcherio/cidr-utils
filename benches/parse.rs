@@ -32,5 +32,29 @@ fn bench_to_cidrs(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_parse, bench_contains, bench_to_cidrs);
+fn bench_subnetting(c: &mut Criterion) {
+    let block: Ipv4Cidr = "10.0.0.0/16".parse().unwrap();
+    let hole: Ipv4Cidr = "10.0.5.128/26".parse().unwrap();
+    c.bench_function("subnets /16 -> /24", |b| {
+        b.iter(|| black_box(&block).subnets(24).count())
+    });
+    c.bench_function("exclude /26 from /16", |b| {
+        b.iter(|| black_box(&block).exclude(black_box(&hole)))
+    });
+
+    let blocks: Vec<Ipv4Cidr> = (0..64)
+        .map(|i| Ipv4Cidr::new(std::net::Ipv4Addr::new(10, 0, i, 0), 25).unwrap())
+        .collect();
+    c.bench_function("aggregate 64 blocks", |b| {
+        b.iter(|| Ipv4Cidr::aggregate(black_box(&blocks)))
+    });
+}
+
+criterion_group!(
+    benches,
+    bench_parse,
+    bench_contains,
+    bench_to_cidrs,
+    bench_subnetting
+);
 criterion_main!(benches);
