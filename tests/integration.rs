@@ -746,3 +746,23 @@ fn ipcidr_split_and_subnet_count() {
     assert_eq!(hi, "10.0.0.128/25".parse::<IpCidr>().unwrap());
     assert_eq!(c.subnet_count(26), 4);
 }
+
+#[test]
+fn exclude_then_aggregate_reconstructs_block() {
+    let block: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    // For every sub-block prefix and position, removing it and adding it back
+    // (via aggregate) must reproduce the original /24 exactly.
+    for prefix in 25..=32u8 {
+        let step = 1u32 << (32 - prefix);
+        let mut base = 0u32;
+        while base < 256 {
+            let hole =
+                Ipv4Cidr::new(std::net::Ipv4Addr::new(10, 0, 0, base as u8), prefix).unwrap();
+            let mut pieces = block.exclude(&hole);
+            pieces.push(hole);
+            let merged = Ipv4Cidr::aggregate(&pieces);
+            assert_eq!(merged, vec![block], "prefix={prefix} base={base}");
+            base += step;
+        }
+    }
+}
