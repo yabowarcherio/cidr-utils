@@ -161,3 +161,16 @@ fn total_flag_sums_addresses() {
     let s = String::from_utf8(out.stdout).unwrap();
     assert_eq!(s.trim(), "512");
 }
+
+#[test]
+fn json_flag_emits_summary() {
+    let out = bin().args(["--json", "10.0.0.0/30"]).output().unwrap();
+    assert!(out.status.success());
+    let s = String::from_utf8(out.stdout).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&s).unwrap();
+    assert_eq!(v[0]["kind"], "cidr");
+    assert_eq!(v[0]["family"], "v4");
+    assert_eq!(v[0]["count"], "4");
+    assert_eq!(v[0]["first"], "10.0.0.0");
+    assert_eq!(v[0]["last"], "10.0.0.3");
+}

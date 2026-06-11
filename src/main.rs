@@ -74,6 +74,10 @@ struct Cli {
     /// Print the total number of addresses across all targets, then exit.
     #[arg(long, conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude"])]
     total: bool,
+
+    /// Emit a JSON summary (kind, family, first, last, count, cidrs) per target.
+    #[arg(long, conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude", "total"])]
+    json: bool,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -198,6 +202,26 @@ fn main() -> ExitCode {
     if cli.total {
         let sum: u128 = parsed.iter().map(|(_, set)| set.count()).sum();
         let _ = writeln!(out, "{sum}");
+        return ExitCode::SUCCESS;
+    }
+
+    if cli.json {
+        let arr: Vec<serde_json::Value> = parsed
+            .iter()
+            .map(|(t, set)| {
+                serde_json::json!({
+                    "target": t,
+                    "kind": if set.is_cidr() { "cidr" } else { "range" },
+                    "family": if set.first().is_ipv4() { "v4" } else { "v6" },
+                    "first": set.first().to_string(),
+                    "last": set.last().to_string(),
+                    // Count is a string: a u128 can exceed JSON's safe integers.
+                    "count": set.count().to_string(),
+                    "cidrs": set.to_cidrs().iter().map(|c| c.to_string()).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        let _ = writeln!(out, "{}", serde_json::to_string_pretty(&arr).unwrap());
         return ExitCode::SUCCESS;
     }
 
