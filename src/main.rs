@@ -62,6 +62,10 @@ struct Cli {
     /// Split each target into sub-blocks of this prefix length.
     #[arg(long, value_name = "PREFIX", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate"])]
     split: Option<u8>,
+
+    /// Subtract this CIDR block from each target, printing the remaining blocks.
+    #[arg(long, value_name = "CIDR", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split"])]
+    exclude: Option<IpCidr>,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -226,6 +230,17 @@ fn main() -> ExitCode {
                             let _ = writeln!(out, "{sub}");
                         }
                     }
+                }
+            }
+        }
+        return ExitCode::SUCCESS;
+    }
+
+    if let Some(hole) = cli.exclude {
+        for (_, set) in &parsed {
+            for cidr in set.to_cidrs() {
+                for remaining in cidr.exclude(&hole) {
+                    let _ = writeln!(out, "{remaining}");
                 }
             }
         }

@@ -128,3 +128,14 @@ fn info_reports_wildcard_and_class() {
     assert!(s.contains("wildcard:  0.255.255.255"));
     assert!(s.contains("class:     private"));
 }
+
+#[test]
+fn exclude_flag_subtracts_block() {
+    let out = bin()
+        .args(["--exclude", "10.0.0.0/25", "10.0.0.0/24"])
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let s = String::from_utf8(out.stdout).unwrap();
+    assert_eq!(s.lines().collect::<Vec<_>>(), vec!["10.0.0.128/25"]);
+}
