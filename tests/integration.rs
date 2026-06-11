@@ -716,3 +716,14 @@ fn range_overlaps_and_contains() {
     let v6: IpRange = "::1-::5".parse().unwrap();
     assert!(!ra.overlaps(&v6));
 }
+
+#[test]
+fn ipset_as_cidr_as_range() {
+    let cidr: IpSet = "10.0.0.0/24".parse().unwrap();
+    assert!(cidr.as_cidr().is_some());
+    assert!(cidr.as_range().is_none());
+
+    let range: IpSet = "10.0.0.1-10".parse().unwrap();
+    assert!(range.as_range().is_some());
+    assert!(range.as_cidr().is_none());
+}

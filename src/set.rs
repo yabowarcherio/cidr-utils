@@ -70,6 +70,22 @@ impl IpSet {
         matches!(self, IpSet::Range(_))
     }
 
+    /// The underlying [`IpCidr`], or `None` if the target is a range.
+    pub fn as_cidr(&self) -> Option<IpCidr> {
+        match self {
+            IpSet::Cidr(c) => Some(*c),
+            IpSet::Range(_) => None,
+        }
+    }
+
+    /// The underlying [`IpRange`], or `None` if the target is a CIDR block.
+    pub fn as_range(&self) -> Option<IpRange> {
+        match self {
+            IpSet::Range(r) => Some(*r),
+            IpSet::Cidr(_) => None,
+        }
+    }
+
     /// The lowest address in the target.
     pub fn first(&self) -> IpAddr {
         match self {
