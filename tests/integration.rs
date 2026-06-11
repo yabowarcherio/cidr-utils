@@ -680,3 +680,20 @@ fn ipset_iterates_in_reverse() {
     // size_hint is forwarded (exact for IPv4).
     assert_eq!(set.addresses().size_hint(), (4, Some(4)));
 }
+
+#[test]
+fn free_aggregate_handles_mixed_families() {
+    let blocks: Vec<IpCidr> = [
+        "10.0.0.0/25",
+        "10.0.0.128/25",
+        "2001:db8::/33",
+        "2001:db8:8000::/33",
+    ]
+    .iter()
+    .map(|s| s.parse().unwrap())
+    .collect();
+    let merged = cidr_utils::aggregate(&blocks);
+    assert_eq!(merged.len(), 2);
+    assert_eq!(merged[0], "10.0.0.0/24".parse::<IpCidr>().unwrap());
+    assert_eq!(merged[1], "2001:db8::/32".parse::<IpCidr>().unwrap());
+}

@@ -73,4 +73,4 @@ mod set;
 pub use cidr::{IpCidr, Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter, Ipv6Cidr};
 pub use error::ParseError;
 pub use range::{IpRange, Ipv4Range, Ipv6Range};
-pub use set::{IpSet, IpSetIter};
+pub use set::{aggregate, IpSet, IpSetIter};

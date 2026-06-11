@@ -6,9 +6,29 @@ use std::fmt;
 use std::net::IpAddr;
 use std::str::FromStr;
 
-use crate::cidr::{IpCidr, Ipv4AddrIter, Ipv6AddrIter};
+use crate::cidr::{IpCidr, Ipv4AddrIter, Ipv4Cidr, Ipv6AddrIter, Ipv6Cidr};
 use crate::error::ParseError;
 use crate::range::IpRange;
+
+/// Collapse a mixed list of IPv4 and IPv6 blocks into the minimal equivalent
+/// set, aggregating each family independently. IPv4 blocks are returned before
+/// IPv6 blocks, each group sorted and non-overlapping.
+pub fn aggregate(cidrs: &[IpCidr]) -> Vec<IpCidr> {
+    let mut v4 = Vec::new();
+    let mut v6 = Vec::new();
+    for c in cidrs {
+        match c {
+            IpCidr::V4(c) => v4.push(*c),
+            IpCidr::V6(c) => v6.push(*c),
+        }
+    }
+    let mut out: Vec<IpCidr> = Ipv4Cidr::aggregate(&v4)
+        .into_iter()
+        .map(IpCidr::V4)
+        .collect();
+    out.extend(Ipv6Cidr::aggregate(&v6).into_iter().map(IpCidr::V6));
+    out
+}
 
 /// A contiguous set of addresses described by one target string.
 ///
