@@ -16,7 +16,7 @@ use crate::set::IpSetIter;
 macro_rules! define_range {
     ($name:ident, $iter:ident, $addr:ty, $uint:ty) => {
         /// An inclusive range of addresses, `start..=end`.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub struct $name {
             start: $uint,
@@ -306,7 +306,7 @@ impl FromStr for Ipv6Range {
 }
 
 /// An address-family-agnostic inclusive range — either IPv4 or IPv6.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum IpRange {
     /// An IPv4 range.

@@ -640,3 +640,21 @@ fn iprange_iterates_addresses() {
     assert_eq!(v[0], "10.0.0.1".parse::<IpAddr>().unwrap());
     assert_eq!(v[3], "10.0.0.4".parse::<IpAddr>().unwrap());
 }
+
+#[test]
+fn ranges_sort_by_start_then_end() {
+    let mut v: Vec<Ipv4Range> = ["10.0.0.5-10", "10.0.0.1-3", "10.0.0.1-9"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    v.sort();
+    let got: Vec<String> = v.iter().map(|r| r.to_string()).collect();
+    assert_eq!(
+        got,
+        vec![
+            "10.0.0.1-10.0.0.3",
+            "10.0.0.1-10.0.0.9",
+            "10.0.0.5-10.0.0.10"
+        ]
+    );
+}
