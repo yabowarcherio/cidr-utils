@@ -697,3 +697,22 @@ fn free_aggregate_handles_mixed_families() {
     assert_eq!(merged[0], "10.0.0.0/24".parse::<IpCidr>().unwrap());
     assert_eq!(merged[1], "2001:db8::/32".parse::<IpCidr>().unwrap());
 }
+
+#[test]
+fn range_overlaps_and_contains() {
+    let a: Ipv4Range = "10.0.0.1-10.0.0.20".parse().unwrap();
+    let b: Ipv4Range = "10.0.0.10-10.0.0.30".parse().unwrap();
+    let inside: Ipv4Range = "10.0.0.5-10.0.0.8".parse().unwrap();
+    let disjoint: Ipv4Range = "10.0.0.50-10.0.0.60".parse().unwrap();
+    assert!(a.overlaps(&b));
+    assert!(!a.overlaps(&disjoint));
+    assert!(a.contains_range(&inside));
+    assert!(!a.contains_range(&b));
+
+    // IpRange delegation + family guard.
+    let ra: IpRange = IpRange::V4(a);
+    let rb: IpRange = IpRange::V4(b);
+    assert!(ra.overlaps(&rb));
+    let v6: IpRange = "::1-::5".parse().unwrap();
+    assert!(!ra.overlaps(&v6));
+}

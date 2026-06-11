@@ -69,6 +69,16 @@ macro_rules! define_range {
             pub fn iter(&self) -> $iter {
                 $iter::bounded(self.start, self.end)
             }
+
+            /// Returns `true` if the two ranges share at least one address.
+            pub fn overlaps(&self, other: &Self) -> bool {
+                self.start <= other.end && other.start <= self.end
+            }
+
+            /// Returns `true` if `other` is entirely within this range.
+            pub fn contains_range(&self, other: &Self) -> bool {
+                self.start <= other.start && other.end <= self.end
+            }
         }
 
         impl fmt::Display for $name {
@@ -360,6 +370,16 @@ impl IpRange {
         match (self, addr) {
             (IpRange::V4(r), IpAddr::V4(a)) => r.contains(a),
             (IpRange::V6(r), IpAddr::V6(a)) => r.contains(a),
+            _ => false,
+        }
+    }
+
+    /// Returns `true` if the two ranges share at least one address. A
+    /// mismatched address family always returns `false`.
+    pub fn overlaps(&self, other: &IpRange) -> bool {
+        match (self, other) {
+            (IpRange::V4(a), IpRange::V4(b)) => a.overlaps(b),
+            (IpRange::V6(a), IpRange::V6(b)) => a.overlaps(b),
             _ => false,
         }
     }
