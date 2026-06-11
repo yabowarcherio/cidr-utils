@@ -178,6 +178,24 @@ macro_rules! define_cidr {
                 }
             }
 
+            /// The number of `new_prefix`-length sub-blocks this block splits
+            /// into, without enumerating them.
+            ///
+            /// Returns `0` if `new_prefix` is shorter than this block's prefix
+            /// or out of range, and saturates to [`u128::MAX`] for the IPv6 `/0`
+            /// split to `/128`.
+            pub fn subnet_count(&self, new_prefix: u8) -> u128 {
+                if new_prefix < self.prefix_len || new_prefix > $bits {
+                    return 0;
+                }
+                let diff = new_prefix - self.prefix_len;
+                if diff >= 128 {
+                    u128::MAX
+                } else {
+                    1u128 << diff
+                }
+            }
+
             /// Split this block into its two equal halves (each one prefix bit
             /// longer), or `None` if the block is already a single address
             /// (`/32` for IPv4, `/128` for IPv6).

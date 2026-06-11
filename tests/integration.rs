@@ -612,3 +612,13 @@ fn split_halves_a_block() {
     // A single host cannot be split.
     assert!("10.0.0.1/32".parse::<Ipv4Cidr>().unwrap().split().is_none());
 }
+
+#[test]
+fn subnet_count_matches_iteration() {
+    let c: Ipv4Cidr = "10.0.0.0/16".parse().unwrap();
+    assert_eq!(c.subnet_count(24), 256);
+    assert_eq!(c.subnet_count(24), c.subnets(24).count() as u128);
+    assert_eq!(c.subnet_count(16), 1); // same prefix
+    assert_eq!(c.subnet_count(8), 0); // shorter
+    assert_eq!(c.subnet_count(33), 0); // out of range
+}
