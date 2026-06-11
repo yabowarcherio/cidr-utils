@@ -658,3 +658,15 @@ fn ranges_sort_by_start_then_end() {
         ]
     );
 }
+
+#[test]
+fn ipset_predicates() {
+    let single: IpSet = "10.0.0.5".parse().unwrap();
+    assert!(single.is_single() && single.is_cidr() && !single.is_range());
+
+    let block: IpSet = "10.0.0.0/24".parse().unwrap();
+    assert!(!block.is_single() && block.is_cidr());
+
+    let range: IpSet = "10.0.0.1-10".parse().unwrap();
+    assert!(range.is_range() && !range.is_cidr() && !range.is_single());
+}

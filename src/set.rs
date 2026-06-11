@@ -35,6 +35,21 @@ impl IpSet {
         }
     }
 
+    /// `true` if the target describes exactly one address.
+    pub fn is_single(&self) -> bool {
+        self.count() == 1
+    }
+
+    /// `true` if the target was written as a CIDR block (or a bare address).
+    pub fn is_cidr(&self) -> bool {
+        matches!(self, IpSet::Cidr(_))
+    }
+
+    /// `true` if the target was written as an address range.
+    pub fn is_range(&self) -> bool {
+        matches!(self, IpSet::Range(_))
+    }
+
     /// The lowest address in the target.
     pub fn first(&self) -> IpAddr {
         match self {
