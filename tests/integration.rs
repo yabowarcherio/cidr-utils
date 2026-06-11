@@ -670,3 +670,13 @@ fn ipset_predicates() {
     let range: IpSet = "10.0.0.1-10".parse().unwrap();
     assert!(range.is_range() && !range.is_cidr() && !range.is_single());
 }
+
+#[test]
+fn ipset_iterates_in_reverse() {
+    let set: IpSet = "10.0.0.0/30".parse().unwrap();
+    let rev: Vec<_> = set.addresses().rev().collect();
+    assert_eq!(rev[0], "10.0.0.3".parse::<IpAddr>().unwrap());
+    assert_eq!(rev[3], "10.0.0.0".parse::<IpAddr>().unwrap());
+    // size_hint is forwarded (exact for IPv4).
+    assert_eq!(set.addresses().size_hint(), (4, Some(4)));
+}

@@ -174,4 +174,20 @@ impl Iterator for IpSetIter {
             IpSetIter::V6(it) => it.next().map(IpAddr::V6),
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            IpSetIter::V4(it) => it.size_hint(),
+            IpSetIter::V6(it) => it.size_hint(),
+        }
+    }
+}
+
+impl DoubleEndedIterator for IpSetIter {
+    fn next_back(&mut self) -> Option<IpAddr> {
+        match self {
+            IpSetIter::V4(it) => it.next_back().map(IpAddr::V4),
+            IpSetIter::V6(it) => it.next_back().map(IpAddr::V6),
+        }
+    }
 }
