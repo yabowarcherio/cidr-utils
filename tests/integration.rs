@@ -727,3 +727,13 @@ fn ipset_as_cidr_as_range() {
     assert!(range.as_range().is_some());
     assert!(range.as_cidr().is_none());
 }
+
+#[test]
+fn ipcidr_nth_address() {
+    let c: IpCidr = "192.168.1.0/24".parse().unwrap();
+    assert_eq!(
+        c.nth_address(10),
+        Some("192.168.1.10".parse::<IpAddr>().unwrap())
+    );
+    assert_eq!(c.nth_address(256), None);
+}

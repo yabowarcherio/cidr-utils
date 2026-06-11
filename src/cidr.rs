@@ -638,6 +638,15 @@ impl IpCidr {
         }
     }
 
+    /// The address at offset `index` from the network address, or `None` if
+    /// `index` is past the end of the block.
+    pub fn nth_address(&self, index: u128) -> Option<IpAddr> {
+        match self {
+            IpCidr::V4(c) => c.nth_address(index).map(IpAddr::V4),
+            IpCidr::V6(c) => c.nth_address(index).map(IpAddr::V6),
+        }
+    }
+
     /// Iterate over every address in the block as [`IpAddr`], lowest to highest.
     pub fn addresses(&self) -> IpSetIter {
         match self {
