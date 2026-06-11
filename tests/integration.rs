@@ -737,3 +737,12 @@ fn ipcidr_nth_address() {
     );
     assert_eq!(c.nth_address(256), None);
 }
+
+#[test]
+fn ipcidr_split_and_subnet_count() {
+    let c: IpCidr = "10.0.0.0/24".parse().unwrap();
+    let (lo, hi) = c.split().unwrap();
+    assert_eq!(lo, "10.0.0.0/25".parse::<IpCidr>().unwrap());
+    assert_eq!(hi, "10.0.0.128/25".parse::<IpCidr>().unwrap());
+    assert_eq!(c.subnet_count(26), 4);
+}

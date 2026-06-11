@@ -606,6 +606,23 @@ impl IpCidr {
         }
     }
 
+    /// Split this block into its two equal halves, or `None` if it is a single
+    /// address.
+    pub fn split(&self) -> Option<(IpCidr, IpCidr)> {
+        match self {
+            IpCidr::V4(c) => c.split().map(|(a, b)| (IpCidr::V4(a), IpCidr::V4(b))),
+            IpCidr::V6(c) => c.split().map(|(a, b)| (IpCidr::V6(a), IpCidr::V6(b))),
+        }
+    }
+
+    /// The number of `new_prefix`-length sub-blocks this block splits into.
+    pub fn subnet_count(&self, new_prefix: u8) -> u128 {
+        match self {
+            IpCidr::V4(c) => c.subnet_count(new_prefix),
+            IpCidr::V6(c) => c.subnet_count(new_prefix),
+        }
+    }
+
     /// Returns `true` if `other` is fully contained in this block. A mismatched
     /// address family always returns `false`.
     pub fn contains_subnet(&self, other: &IpCidr) -> bool {
