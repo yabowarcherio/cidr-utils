@@ -5,6 +5,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
 use crate::error::ParseError;
+use crate::set::IpSetIter;
 
 /// Generate a concrete CIDR type for one address family.
 ///
@@ -634,6 +635,23 @@ impl IpCidr {
             (IpCidr::V4(a), IpCidr::V4(b)) => a.exclude(b).into_iter().map(IpCidr::V4).collect(),
             (IpCidr::V6(a), IpCidr::V6(b)) => a.exclude(b).into_iter().map(IpCidr::V6).collect(),
             _ => vec![*self],
+        }
+    }
+
+    /// Iterate over every address in the block as [`IpAddr`], lowest to highest.
+    pub fn addresses(&self) -> IpSetIter {
+        match self {
+            IpCidr::V4(c) => IpSetIter::V4(c.addresses()),
+            IpCidr::V6(c) => IpSetIter::V6(c.addresses()),
+        }
+    }
+
+    /// Iterate over the host addresses, applying IPv4 network/broadcast
+    /// conventions (identical to [`addresses`](Self::addresses) for IPv6).
+    pub fn hosts(&self) -> IpSetIter {
+        match self {
+            IpCidr::V4(c) => IpSetIter::V4(c.hosts()),
+            IpCidr::V6(c) => IpSetIter::V6(c.addresses()),
         }
     }
 

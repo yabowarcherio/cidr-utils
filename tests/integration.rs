@@ -622,3 +622,12 @@ fn subnet_count_matches_iteration() {
     assert_eq!(c.subnet_count(8), 0); // shorter
     assert_eq!(c.subnet_count(33), 0); // out of range
 }
+
+#[test]
+fn ipcidr_iterates_addresses_and_hosts() {
+    let c: IpCidr = "192.168.1.0/30".parse().unwrap();
+    assert_eq!(c.addresses().count(), 4);
+    assert_eq!(c.hosts().count(), 2);
+    let first = c.addresses().next().unwrap();
+    assert_eq!(first, "192.168.1.0".parse::<IpAddr>().unwrap());
+}
