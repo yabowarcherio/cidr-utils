@@ -194,6 +194,48 @@ macro_rules! define_cidr {
                 let b_last = other.network | !Self::mask_bits(other.prefix_len);
                 self.network <= b_last && other.network <= a_last
             }
+
+            /// Remove `other` from this block, returning the minimal set of CIDR
+            /// blocks covering the remaining addresses, sorted ascending.
+            ///
+            /// - If `other` does not overlap this block, the result is just this
+            ///   block unchanged.
+            /// - If `other` fully covers this block, the result is empty.
+            /// - Otherwise `other` is a strict subnet, and the result is the set
+            ///   of sibling blocks along the path down to it.
+            pub fn exclude(&self, other: &Self) -> Vec<Self> {
+                if !self.overlaps(other) {
+                    return vec![*self];
+                }
+                if other.contains_subnet(self) {
+                    return Vec::new();
+                }
+                // `other` is necessarily a strict subnet here (CIDR blocks never
+                // partially overlap). Walk down, keeping the sibling each step.
+                let mut result = Vec::new();
+                let mut current = *self;
+                while current.prefix_len < other.prefix_len {
+                    let child_prefix = current.prefix_len + 1;
+                    let half_bit: $uint = 1 << ($bits - child_prefix as u32);
+                    let lower = Self {
+                        network: current.network,
+                        prefix_len: child_prefix,
+                    };
+                    let upper = Self {
+                        network: current.network | half_bit,
+                        prefix_len: child_prefix,
+                    };
+                    if lower.contains_subnet(other) {
+                        result.push(upper);
+                        current = lower;
+                    } else {
+                        result.push(lower);
+                        current = upper;
+                    }
+                }
+                result.sort_unstable();
+                result
+            }
         }
 
         /// Iterator over the sub-blocks produced by `subnets`.

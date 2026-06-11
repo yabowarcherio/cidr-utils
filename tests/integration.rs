@@ -528,3 +528,43 @@ fn hosts_reverse_excludes_network_broadcast() {
     rev.reverse();
     assert_eq!(fwd, rev);
 }
+
+// --- CIDR subtraction -----------------------------------------------------
+
+#[test]
+fn exclude_removes_subnet() {
+    let block: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    let hole: Ipv4Cidr = "10.0.0.64/26".parse().unwrap();
+    let rest = block.exclude(&hole);
+    // The remainder must cover exactly the block minus the hole.
+    let covered: u128 = rest.iter().map(|c| c.address_count()).sum();
+    assert_eq!(covered, block.address_count() - hole.address_count());
+    // None of the remainder overlaps the hole.
+    assert!(rest.iter().all(|c| !c.overlaps(&hole)));
+    // And it is sorted.
+    assert!(rest.windows(2).all(|w| w[0] < w[1]));
+}
+
+#[test]
+fn exclude_disjoint_returns_self() {
+    let block: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    let other: Ipv4Cidr = "10.0.1.0/24".parse().unwrap();
+    assert_eq!(block.exclude(&other), vec![block]);
+}
+
+#[test]
+fn exclude_self_is_empty() {
+    let block: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    assert!(block.exclude(&block).is_empty());
+}
+
+#[test]
+fn exclude_single_host_from_slash24() {
+    let block: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+    let host: Ipv4Cidr = "192.168.1.50/32".parse().unwrap();
+    let rest = block.exclude(&host);
+    // Removing one host from a /24 leaves 8 blocks (/25../32).
+    assert_eq!(rest.len(), 8);
+    let covered: u128 = rest.iter().map(|c| c.address_count()).sum();
+    assert_eq!(covered, 255);
+}
