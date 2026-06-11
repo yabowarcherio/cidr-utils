@@ -146,9 +146,37 @@ assert!("10.0.0.0/8".parse::<Ipv4Cidr>().unwrap().is_private());
 assert_eq!(block.wildcard().to_string(), "0.0.0.255");
 ```
 
+Subtract, split, and index blocks:
+
+```rust
+use cidr_utils::Ipv4Cidr;
+
+// CIDR subtraction: what's left of a /24 after removing a /26?
+let block: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+let hole: Ipv4Cidr = "10.0.0.64/26".parse().unwrap();
+let rest: Vec<_> = block.exclude(&hole).iter().map(|c| c.to_string()).collect();
+assert_eq!(rest, ["10.0.0.0/26", "10.0.0.128/25"]);
+
+// Halve a block, count subnets without enumerating, index in O(1).
+let (lo, hi) = block.split().unwrap();
+assert_eq!((lo.to_string(), hi.to_string()),
+           ("10.0.0.0/25".into(), "10.0.0.128/25".into()));
+assert_eq!(block.subnet_count(28), 16);
+assert_eq!(block.nth_address(10).unwrap().to_string(), "10.0.0.10");
+```
+
+Address iterators are double-ended, so you can walk a block from the top:
+
+```rust
+use cidr_utils::Ipv4Cidr;
+let c: Ipv4Cidr = "10.0.0.0/30".parse().unwrap();
+let top = c.addresses().next_back().unwrap();
+assert_eq!(top.to_string(), "10.0.0.3");
+```
+
 The CLI exposes the same: `--cidrs` (decompose), `--aggregate` (merge),
-`--split <PREFIX>` (subnet), and `--info` (now including the wildcard mask and
-address class).
+`--split <PREFIX>` (subnet), `--exclude <CIDR>` (subtract), `--reverse`,
+`--total`, `--json`, and `--info` (with wildcard mask and address class).
 
 ## Design notes
 

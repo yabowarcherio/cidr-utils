@@ -22,7 +22,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `size_hint` on the address iterators (exact for IPv4).
 - CLI: `--cidrs`, `--aggregate`, `--split <PREFIX>`, and a wildcard mask plus
   address class in `--info`.
-- Criterion benchmarks for parsing, containment, and decomposition.
+- CIDR subtraction: `exclude()` on the CIDR types and `IpCidr`, plus the CLI
+  `--exclude <CIDR>`.
+- Block utilities: `split()`, `subnet_count()`, and `nth_address()` (O(1)
+  indexing) on the CIDR types, with `nth_address` on `IpCidr`.
+- Iteration: address iterators are now `DoubleEndedIterator` (reverse / `rev`);
+  `IpCidr`/`IpRange` gained `addresses()`/`hosts()`, and `IpSetIter` forwards
+  `size_hint` and reverses.
+- Ranges: `overlaps()` / `contains_range()` and `Ord`/`PartialOrd`.
+- `IpSet`: `is_single`/`is_cidr`/`is_range`, `as_cidr`/`as_range`.
+- Top-level `aggregate()` for mixed-family block lists.
+- CLI: `--reverse`, `--total`, and `--json` target summaries.
+- Criterion benchmarks for parsing, containment, decomposition, subnetting,
+  exclusion, and aggregation.
 
 ## [0.1.0]
 
