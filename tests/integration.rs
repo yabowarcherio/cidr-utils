@@ -568,3 +568,15 @@ fn exclude_single_host_from_slash24() {
     let covered: u128 = rest.iter().map(|c| c.address_count()).sum();
     assert_eq!(covered, 255);
 }
+
+#[test]
+fn ipcidr_exclude_delegates_and_guards_family() {
+    let block: IpCidr = "10.0.0.0/24".parse().unwrap();
+    let hole: IpCidr = "10.0.0.0/25".parse().unwrap();
+    let rest = block.exclude(&hole);
+    assert_eq!(rest, vec!["10.0.0.128/25".parse::<IpCidr>().unwrap()]);
+
+    // Cross-family removes nothing.
+    let v6: IpCidr = "2001:db8::/32".parse().unwrap();
+    assert_eq!(block.exclude(&v6), vec![block]);
+}

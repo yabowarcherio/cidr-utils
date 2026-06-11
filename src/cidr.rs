@@ -574,6 +574,18 @@ impl IpCidr {
         }
     }
 
+    /// Remove `other` from this block, returning the minimal covering remainder.
+    ///
+    /// A mismatched address family removes nothing (returns this block
+    /// unchanged).
+    pub fn exclude(&self, other: &IpCidr) -> Vec<IpCidr> {
+        match (self, other) {
+            (IpCidr::V4(a), IpCidr::V4(b)) => a.exclude(b).into_iter().map(IpCidr::V4).collect(),
+            (IpCidr::V6(a), IpCidr::V6(b)) => a.exclude(b).into_iter().map(IpCidr::V6).collect(),
+            _ => vec![*self],
+        }
+    }
+
     /// The total number of addresses in the block.
     pub fn address_count(&self) -> u128 {
         match self {
