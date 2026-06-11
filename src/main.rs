@@ -66,6 +66,10 @@ struct Cli {
     /// Subtract this CIDR block from each target, printing the remaining blocks.
     #[arg(long, value_name = "CIDR", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split"])]
     exclude: Option<IpCidr>,
+
+    /// List addresses from highest to lowest instead of lowest to highest.
+    #[arg(short, long)]
+    reverse: bool,
 }
 
 /// Expand the target list, replacing a `-` with lines read from stdin.
@@ -249,10 +253,15 @@ fn main() -> ExitCode {
 
     // Default: list addresses, one per line.
     for (_, set) in &parsed {
-        let iter = if cli.all {
+        let base = if cli.all {
             set.addresses()
         } else {
             set.hosts()
+        };
+        let iter: Box<dyn Iterator<Item = IpAddr>> = if cli.reverse {
+            Box::new(base.rev())
+        } else {
+            Box::new(base)
         };
         for (printed, addr) in iter.enumerate() {
             if cli.limit != 0 && printed as u64 >= cli.limit {

@@ -139,3 +139,15 @@ fn exclude_flag_subtracts_block() {
     let s = String::from_utf8(out.stdout).unwrap();
     assert_eq!(s.lines().collect::<Vec<_>>(), vec!["10.0.0.128/25"]);
 }
+
+#[test]
+fn reverse_flag_lists_descending() {
+    let out = bin()
+        .args(["--reverse", "192.168.1.0/30"])
+        .output()
+        .unwrap();
+    let s = String::from_utf8(out.stdout).unwrap();
+    let lines: Vec<_> = s.lines().collect();
+    // Hosts of /30 are .1 and .2; reversed -> .2 then .1.
+    assert_eq!(lines, vec!["192.168.1.2", "192.168.1.1"]);
+}
