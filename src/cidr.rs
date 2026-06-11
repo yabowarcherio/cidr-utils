@@ -113,6 +113,19 @@ macro_rules! define_cidr {
                 }
             }
 
+            /// The address at offset `index` from the network address, or
+            /// `None` if `index` is past the end of the block.
+            ///
+            /// `nth_address(0)` is the network address. This is an O(1) index,
+            /// far cheaper than iterating for a known position.
+            pub fn nth_address(&self, index: u128) -> Option<$addr> {
+                if index >= self.address_count() {
+                    return None;
+                }
+                let offset = <$uint>::try_from(index).ok()?;
+                Some(<$addr>::from_bits(self.network + offset))
+            }
+
             /// Iterate over every address in the block, lowest to highest.
             ///
             /// For large IPv6 blocks this iterator is effectively unbounded —

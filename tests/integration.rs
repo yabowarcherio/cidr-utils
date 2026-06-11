@@ -580,3 +580,21 @@ fn ipcidr_exclude_delegates_and_guards_family() {
     let v6: IpCidr = "2001:db8::/32".parse().unwrap();
     assert_eq!(block.exclude(&v6), vec![block]);
 }
+
+#[test]
+fn nth_address_indexes_block() {
+    let c: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+    assert_eq!(c.nth_address(0), Some(Ipv4Addr::new(192, 168, 1, 0)));
+    assert_eq!(c.nth_address(50), Some(Ipv4Addr::new(192, 168, 1, 50)));
+    assert_eq!(c.nth_address(255), Some(Ipv4Addr::new(192, 168, 1, 255)));
+    assert_eq!(c.nth_address(256), None);
+    // Agrees with iteration.
+    assert_eq!(c.nth_address(42), c.addresses().nth(42));
+}
+
+#[test]
+fn nth_address_ipv6() {
+    let c: Ipv6Cidr = "2001:db8::/120".parse().unwrap();
+    assert_eq!(c.nth_address(255), c.addresses().next_back());
+    assert_eq!(c.nth_address(256), None);
+}
