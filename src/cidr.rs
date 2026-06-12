@@ -536,6 +536,27 @@ impl Ipv6Cidr {
         self.network().is_unspecified()
     }
 
+    /// `true` if the block is in the IPv6 unique-local range `fc00::/7`
+    /// (RFC 4193). The IPv6 analogue of RFC 1918 private addresses.
+    pub fn is_unique_local(&self) -> bool {
+        let s = self.network().segments();
+        (s[0] & 0xFE00) == 0xFC00
+    }
+
+    /// `true` if the block is in the IPv6 link-local range `fe80::/10`
+    /// (RFC 4291 §2.4).
+    pub fn is_link_local(&self) -> bool {
+        let s = self.network().segments();
+        (s[0] & 0xFFC0) == 0xFE80
+    }
+
+    /// `true` if the block is in the IPv6 documentation range `2001:db8::/32`
+    /// (RFC 3849).
+    pub fn is_documentation(&self) -> bool {
+        let s = self.network().segments();
+        s[0] == 0x2001 && s[1] == 0x0DB8
+    }
+
     /// Iterate over the host addresses of the block.
     ///
     /// IPv6 has no broadcast address, so this is identical to

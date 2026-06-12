@@ -776,3 +776,35 @@ fn iprange_contains_range_delegation() {
     let v6: IpRange = "::1-::5".parse().unwrap();
     assert!(!outer.contains_range(&v6));
 }
+
+#[test]
+fn ipv6_unique_local_range() {
+    use cidr_utils::Ipv6Cidr;
+    let ula: Ipv6Cidr = "fd00::/8".parse().unwrap();
+    assert!(ula.is_unique_local());
+    let ula_low: Ipv6Cidr = "fc00::/8".parse().unwrap();
+    assert!(ula_low.is_unique_local());
+    let outside: Ipv6Cidr = "2001::/16".parse().unwrap();
+    assert!(!outside.is_unique_local());
+}
+
+#[test]
+fn ipv6_link_local_range() {
+    use cidr_utils::Ipv6Cidr;
+    let ll: Ipv6Cidr = "fe80::/10".parse().unwrap();
+    assert!(ll.is_link_local());
+    let outside: Ipv6Cidr = "2001::/16".parse().unwrap();
+    assert!(!outside.is_link_local());
+    // fec0:: is not link-local (it's the deprecated site-local).
+    let sl: Ipv6Cidr = "fec0::/10".parse().unwrap();
+    assert!(!sl.is_link_local());
+}
+
+#[test]
+fn ipv6_documentation_range() {
+    use cidr_utils::Ipv6Cidr;
+    let doc: Ipv6Cidr = "2001:db8::/32".parse().unwrap();
+    assert!(doc.is_documentation());
+    let outside: Ipv6Cidr = "2001:db9::/32".parse().unwrap();
+    assert!(!outside.is_documentation());
+}
