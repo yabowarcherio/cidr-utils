@@ -808,3 +808,26 @@ fn ipv6_documentation_range() {
     let outside: Ipv6Cidr = "2001:db9::/32".parse().unwrap();
     assert!(!outside.is_documentation());
 }
+
+#[test]
+fn ipcidr_predicates_route_to_family() {
+    use cidr_utils::IpCidr;
+    let v4_priv: IpCidr = "10.0.0.0/8".parse().unwrap();
+    assert!(v4_priv.is_private());
+    let v4_doc: IpCidr = "192.0.2.0/24".parse().unwrap();
+    assert!(v4_doc.is_documentation());
+    let v4_ll: IpCidr = "169.254.0.0/16".parse().unwrap();
+    assert!(v4_ll.is_link_local());
+
+    let v6_ula: IpCidr = "fd00::/8".parse().unwrap();
+    assert!(v6_ula.is_private());
+    let v6_doc: IpCidr = "2001:db8::/32".parse().unwrap();
+    assert!(v6_doc.is_documentation());
+    let v6_ll: IpCidr = "fe80::/10".parse().unwrap();
+    assert!(v6_ll.is_link_local());
+
+    let v4_lo: IpCidr = "127.0.0.0/8".parse().unwrap();
+    assert!(v4_lo.is_loopback());
+    let v4_mc: IpCidr = "224.0.0.0/4".parse().unwrap();
+    assert!(v4_mc.is_multicast());
+}

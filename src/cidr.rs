@@ -729,6 +729,53 @@ impl IpCidr {
     pub fn is_ipv6(&self) -> bool {
         matches!(self, IpCidr::V6(_))
     }
+
+    /// `true` if the block is the loopback range for its family — `127.0.0.0/8`
+    /// for IPv4, `::1` for IPv6.
+    pub fn is_loopback(&self) -> bool {
+        match self {
+            IpCidr::V4(c) => c.is_loopback(),
+            IpCidr::V6(c) => c.is_loopback(),
+        }
+    }
+
+    /// `true` if the block is multicast for its family — `224.0.0.0/4` for
+    /// IPv4, `ff00::/8` for IPv6.
+    pub fn is_multicast(&self) -> bool {
+        match self {
+            IpCidr::V4(c) => c.is_multicast(),
+            IpCidr::V6(c) => c.is_multicast(),
+        }
+    }
+
+    /// `true` if the block is "private" for its family — RFC 1918 for IPv4
+    /// (`10/8`, `172.16/12`, `192.168/16`), RFC 4193 unique-local (`fc00::/7`)
+    /// for IPv6.
+    pub fn is_private(&self) -> bool {
+        match self {
+            IpCidr::V4(c) => c.is_private(),
+            IpCidr::V6(c) => c.is_unique_local(),
+        }
+    }
+
+    /// `true` if the block is link-local for its family — `169.254.0.0/16` for
+    /// IPv4, `fe80::/10` for IPv6.
+    pub fn is_link_local(&self) -> bool {
+        match self {
+            IpCidr::V4(c) => c.is_link_local(),
+            IpCidr::V6(c) => c.is_link_local(),
+        }
+    }
+
+    /// `true` if the block is documentation for its family — `192.0.2.0/24`,
+    /// `198.51.100.0/24`, `203.0.113.0/24` for IPv4 (per `is_documentation` on
+    /// `Ipv4Cidr`), `2001:db8::/32` for IPv6.
+    pub fn is_documentation(&self) -> bool {
+        match self {
+            IpCidr::V4(c) => c.is_documentation(),
+            IpCidr::V6(c) => c.is_documentation(),
+        }
+    }
 }
 
 impl fmt::Display for IpCidr {
