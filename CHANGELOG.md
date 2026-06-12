@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `Ipv6Cidr` predicates: `is_unique_local` (RFC 4193 `fc00::/7`),
+  `is_link_local` (RFC 4291 §2.4 `fe80::/10`), `is_documentation`
+  (RFC 3849 `2001:db8::/32`).
+- `IpCidr` predicates routing to the underlying family: `is_loopback`,
+  `is_multicast`, `is_private`, `is_link_local`, `is_documentation`.
 - Block hierarchy: `supernet()`, `subnets(prefix)`, `contains_subnet`,
   `is_subnet_of`, `is_supernet_of`, and `overlaps` on the CIDR types.
 - IPv4 helpers: `wildcard()`, `first_host()`, `last_host()`, and classification
