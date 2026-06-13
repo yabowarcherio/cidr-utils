@@ -67,6 +67,18 @@ macro_rules! define_cidr {
                 (Self::mask_bits(ones) == mask).then_some(ones)
             }
 
+            /// Convert a dotted/expanded network mask (e.g. `255.255.255.0`) to
+            /// a prefix length. Returns `None` if `mask` is not a valid
+            /// contiguous run of leading ones.
+            pub fn mask_to_prefix_len(mask: $addr) -> Option<u8> {
+                Self::prefix_from_mask(mask.to_bits())
+            }
+
+            /// The wildcard mask (`!netmask`), e.g. `0.0.0.255` for a `/24`.
+            pub fn wildcard_mask(&self) -> $addr {
+                <$addr>::from_bits(!Self::mask_bits(self.prefix_len))
+            }
+
             /// The prefix length (number of leading network bits).
             #[inline]
             pub const fn prefix_len(&self) -> u8 {

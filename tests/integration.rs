@@ -810,6 +810,37 @@ fn ipv6_documentation_range() {
 }
 
 #[test]
+fn mask_to_prefix_len_round_trips() {
+    use cidr_utils::{Ipv4Cidr, Ipv6Cidr};
+    use std::net::{Ipv4Addr, Ipv6Addr};
+
+    assert_eq!(
+        Ipv4Cidr::mask_to_prefix_len(Ipv4Addr::new(255, 255, 255, 0)),
+        Some(24)
+    );
+    assert_eq!(
+        Ipv4Cidr::mask_to_prefix_len(Ipv4Addr::new(255, 255, 0, 0)),
+        Some(16)
+    );
+    // Non-contiguous mask.
+    assert_eq!(
+        Ipv4Cidr::mask_to_prefix_len(Ipv4Addr::new(255, 0, 255, 0)),
+        None
+    );
+
+    let v6: Ipv6Addr = "ffff:ffff:ffff:ffff::".parse().unwrap();
+    assert_eq!(Ipv6Cidr::mask_to_prefix_len(v6), Some(64));
+}
+
+#[test]
+fn wildcard_mask_inverts_netmask() {
+    use cidr_utils::Ipv4Cidr;
+    use std::net::Ipv4Addr;
+    let c: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+    assert_eq!(c.wildcard_mask(), Ipv4Addr::new(0, 0, 0, 255));
+}
+
+#[test]
 fn ipcidr_predicates_route_to_family() {
     use cidr_utils::IpCidr;
     let v4_priv: IpCidr = "10.0.0.0/8".parse().unwrap();
