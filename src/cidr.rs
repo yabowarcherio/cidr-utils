@@ -788,6 +788,14 @@ impl IpCidr {
             IpCidr::V6(c) => c.is_documentation(),
         }
     }
+
+    /// Network mask packed as the same family's address (e.g. `255.255.255.0`).
+    pub fn wildcard_mask(&self) -> IpAddr {
+        match self {
+            IpCidr::V4(c) => IpAddr::V4(c.wildcard_mask()),
+            IpCidr::V6(c) => IpAddr::V6(c.wildcard_mask()),
+        }
+    }
 }
 
 impl fmt::Display for IpCidr {
