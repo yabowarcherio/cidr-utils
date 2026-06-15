@@ -742,6 +742,21 @@ impl IpCidr {
         matches!(self, IpCidr::V6(_))
     }
 
+    /// `true` if this block is a single address (a `/32` for IPv4 or a `/128`
+    /// for IPv6).
+    pub fn is_host(&self) -> bool {
+        match self {
+            IpCidr::V4(c) => c.prefix_len() == 32,
+            IpCidr::V6(c) => c.prefix_len() == 128,
+        }
+    }
+
+    /// `true` if this block is the entire address space for its family (a
+    /// `/0`).
+    pub fn is_default(&self) -> bool {
+        self.prefix_len() == 0
+    }
+
     /// `true` if the block is the loopback range for its family — `127.0.0.0/8`
     /// for IPv4, `::1` for IPv6.
     pub fn is_loopback(&self) -> bool {
