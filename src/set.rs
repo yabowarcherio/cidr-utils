@@ -145,6 +145,32 @@ impl IpSet {
             other => other.addresses(),
         }
     }
+
+    /// `true` if `other`'s entire address span lies within this target.
+    pub fn contains_set(&self, other: &IpSet) -> bool {
+        self.contains(other.first()) && self.contains(other.last())
+    }
+
+    /// `true` if this target and `other` share at least one address.
+    pub fn overlaps(&self, other: &IpSet) -> bool {
+        // Two address ranges overlap iff each range's lower bound is no
+        // greater than the other range's upper bound.
+        match (self.first(), self.last(), other.first(), other.last()) {
+            (IpAddr::V4(a1), IpAddr::V4(a2), IpAddr::V4(b1), IpAddr::V4(b2)) => {
+                a1.to_bits() <= b2.to_bits() && b1.to_bits() <= a2.to_bits()
+            }
+            (IpAddr::V6(a1), IpAddr::V6(a2), IpAddr::V6(b1), IpAddr::V6(b2)) => {
+                a1.to_bits() <= b2.to_bits() && b1.to_bits() <= a2.to_bits()
+            }
+            _ => false,
+        }
+    }
+
+    /// `true` if this target is a single address (`/32`, `/128`, or a
+    /// one-address range).
+    pub fn is_address(&self) -> bool {
+        self.count() == 1
+    }
 }
 
 impl fmt::Display for IpSet {

@@ -810,6 +810,24 @@ fn ipv6_documentation_range() {
 }
 
 #[test]
+fn ipset_contains_set_and_overlaps() {
+    use cidr_utils::IpSet;
+    let big: IpSet = "10.0.0.0/24".parse().unwrap();
+    let small: IpSet = "10.0.0.10-10.0.0.20".parse().unwrap();
+    let outside: IpSet = "10.0.1.0/24".parse().unwrap();
+    let single: IpSet = "10.0.0.5".parse().unwrap();
+    assert!(big.contains_set(&small));
+    assert!(!small.contains_set(&big));
+    assert!(big.contains_set(&single));
+    assert!(single.is_address());
+    assert!(big.overlaps(&small));
+    assert!(!big.overlaps(&outside));
+    let touching_a: IpSet = "10.0.0.0/25".parse().unwrap();
+    let touching_b: IpSet = "10.0.0.128/25".parse().unwrap();
+    assert!(!touching_a.overlaps(&touching_b));
+}
+
+#[test]
 fn mask_to_prefix_len_round_trips() {
     use cidr_utils::{Ipv4Cidr, Ipv6Cidr};
     use std::net::{Ipv4Addr, Ipv6Addr};
