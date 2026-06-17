@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Added
 
 - `Ipv6Cidr` predicates: `is_unique_local` (RFC 4193 `fc00::/7`),
@@ -13,6 +15,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (RFC 3849 `2001:db8::/32`).
 - `IpCidr` predicates routing to the underlying family: `is_loopback`,
   `is_multicast`, `is_private`, `is_link_local`, `is_documentation`.
+- `Ipv4Cidr::mask_to_prefix_len` / `Ipv6Cidr::mask_to_prefix_len` and
+  `wildcard_mask` on both family-specific types and `IpCidr`.
+- `IpCidr::is_host`, `IpCidr::is_default` predicates for the trivial extremes.
+- `IpSet::contains_set`, `IpSet::overlaps`, `IpSet::is_address`.
 - Block hierarchy: `supernet()`, `subnets(prefix)`, `contains_subnet`,
   `is_subnet_of`, `is_supernet_of`, and `overlaps` on the CIDR types.
 - IPv4 helpers: `wildcard()`, `first_host()`, `last_host()`, and classification
@@ -61,5 +67,6 @@ Initial release.
 - Optional `serde` feature deriving `Serialize`/`Deserialize` on the public
   types.
 
-[Unreleased]: https://github.com/yabowarcherio/cidr-utils/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yabowarcherio/cidr-utils/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/yabowarcherio/cidr-utils/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yabowarcherio/cidr-utils/releases/tag/v0.1.0
