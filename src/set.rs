@@ -171,6 +171,19 @@ impl IpSet {
     pub fn is_address(&self) -> bool {
         self.count() == 1
     }
+
+    /// The `index`th address in this target, where `nth_address(0)` is
+    /// [`first`](Self::first) and `nth_address(count - 1)` is
+    /// [`last`](Self::last). Returns `None` past [`count`](Self::count).
+    ///
+    /// Both backing implementations are O(1), so this is the cheap way to
+    /// sample inside a huge target without iterating.
+    pub fn nth_address(&self, index: u128) -> Option<IpAddr> {
+        match self {
+            IpSet::Cidr(c) => c.nth_address(index),
+            IpSet::Range(r) => r.nth_address(index),
+        }
+    }
 }
 
 impl fmt::Display for IpSet {

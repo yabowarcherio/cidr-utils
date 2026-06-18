@@ -400,6 +400,18 @@ impl IpRange {
         }
     }
 
+    /// The `index`th address in the range, where index 0 is
+    /// [`start`](Self::start). Returns `None` past [`count`](Self::count).
+    ///
+    /// Delegates to the underlying [`Ipv4Range::nth_address`] /
+    /// [`Ipv6Range::nth_address`].
+    pub fn nth_address(&self, index: u128) -> Option<IpAddr> {
+        match self {
+            IpRange::V4(r) => r.nth_address(index).map(IpAddr::V4),
+            IpRange::V6(r) => r.nth_address(index).map(IpAddr::V6),
+        }
+    }
+
     /// Returns `true` if `other` is entirely within this range. A mismatched
     /// address family always returns `false`.
     pub fn contains_range(&self, other: &IpRange) -> bool {
