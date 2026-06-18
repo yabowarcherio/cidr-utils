@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- O(1) `nth_address(index)` on `Ipv4Range`, `Ipv6Range`, `IpRange`, and
+  `IpSet`. Lets callers sample inside a huge target without iterating.
+
 ## [0.2.0]
 
 ### Added
