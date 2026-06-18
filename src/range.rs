@@ -79,6 +79,22 @@ macro_rules! define_range {
             pub fn contains_range(&self, other: &Self) -> bool {
                 self.start <= other.start && other.end <= self.end
             }
+
+            /// The `index`th address in the range, where `nth_address(0)` is
+            /// [`start`](Self::start). Returns `None` for any index past
+            /// [`count`](Self::count).
+            ///
+            /// O(1) indexing — useful for sampling deterministically inside a
+            /// large range without iterating.
+            pub fn nth_address(&self, index: u128) -> Option<$addr> {
+                if index >= self.count() {
+                    return None;
+                }
+                // index < count <= u128::MAX, and start..=end fits in the
+                // address bits, so this cannot overflow.
+                let bits = self.start as u128 + index;
+                Some(<$addr>::from_bits(bits as _))
+            }
         }
 
         impl fmt::Display for $name {
