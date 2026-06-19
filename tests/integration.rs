@@ -925,3 +925,48 @@ fn iprange_nth_address_delegates_to_family() {
     let ip: IpRange = IpRange::V4(r4);
     assert_eq!(ip.nth_address(5).unwrap(), IpAddr::V4(r4.nth_address(5).unwrap()));
 }
+
+#[test]
+fn ipv4_supernet_at_climbs_to_named_prefix() {
+    use cidr_utils::Ipv4Cidr;
+    let c: Ipv4Cidr = "10.20.30.0/24".parse().unwrap();
+    let s: Ipv4Cidr = c.supernet_at(16).unwrap();
+    assert_eq!(s.to_string(), "10.20.0.0/16");
+    let z: Ipv4Cidr = c.supernet_at(0).unwrap();
+    assert_eq!(z.to_string(), "0.0.0.0/0");
+}
+
+#[test]
+fn ipv4_supernet_at_self_is_self() {
+    use cidr_utils::Ipv4Cidr;
+    let c: Ipv4Cidr = "10.20.30.0/24".parse().unwrap();
+    assert_eq!(c.supernet_at(24).unwrap(), c);
+}
+
+#[test]
+fn ipv4_supernet_at_longer_prefix_is_none() {
+    use cidr_utils::Ipv4Cidr;
+    let c: Ipv4Cidr = "10.20.30.0/24".parse().unwrap();
+    assert!(c.supernet_at(25).is_none());
+    assert!(c.supernet_at(32).is_none());
+}
+
+#[test]
+fn ipv6_supernet_at_truncates_lower_bits() {
+    use cidr_utils::Ipv6Cidr;
+    let c: Ipv6Cidr = "2001:db8:1234::/48".parse().unwrap();
+    let s: Ipv6Cidr = c.supernet_at(32).unwrap();
+    assert_eq!(s.to_string(), "2001:db8::/32");
+}
+
+#[test]
+fn ipcidr_supernet_at_routes_to_family() {
+    use cidr_utils::IpCidr;
+    let v4: IpCidr = "10.20.30.0/24".parse().unwrap();
+    assert_eq!(v4.supernet_at(16).unwrap().to_string(), "10.20.0.0/16");
+    let v6: IpCidr = "2001:db8:abcd::/48".parse().unwrap();
+    assert_eq!(v6.supernet_at(32).unwrap().to_string(), "2001:db8::/32");
+    // Longer-than-self is None for both families.
+    assert!(v4.supernet_at(25).is_none());
+    assert!(v6.supernet_at(49).is_none());
+}
