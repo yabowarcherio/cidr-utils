@@ -164,6 +164,23 @@ macro_rules! define_cidr {
                 })
             }
 
+            /// Return the smallest enclosing block whose prefix length is
+            /// exactly `new_prefix`. Returns `None` if `new_prefix` is longer
+            /// than this block's prefix (the result would be a strict subnet,
+            /// not an enclosing block).
+            ///
+            /// `supernet_at(self.prefix_len())` is `Some(self)`; `supernet_at(0)`
+            /// always yields the `/0` block.
+            pub fn supernet_at(&self, new_prefix: u8) -> Option<Self> {
+                if new_prefix > self.prefix_len {
+                    return None;
+                }
+                Some(Self {
+                    network: self.network & Self::mask_bits(new_prefix),
+                    prefix_len: new_prefix,
+                })
+            }
+
             /// Split this block into the sub-blocks of length `new_prefix`.
             ///
             /// The returned iterator is empty if `new_prefix` is shorter than
