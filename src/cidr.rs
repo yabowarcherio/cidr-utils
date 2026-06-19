@@ -656,6 +656,17 @@ impl IpCidr {
         }
     }
 
+    /// The smallest enclosing block of length exactly `new_prefix`, or `None`
+    /// if `new_prefix` is longer than this block's prefix.
+    ///
+    /// Delegates to [`Ipv4Cidr::supernet_at`] / [`Ipv6Cidr::supernet_at`].
+    pub fn supernet_at(&self, new_prefix: u8) -> Option<IpCidr> {
+        match self {
+            IpCidr::V4(c) => c.supernet_at(new_prefix).map(IpCidr::V4),
+            IpCidr::V6(c) => c.supernet_at(new_prefix).map(IpCidr::V6),
+        }
+    }
+
     /// Split this block into its two equal halves, or `None` if it is a single
     /// address.
     pub fn split(&self) -> Option<(IpCidr, IpCidr)> {
