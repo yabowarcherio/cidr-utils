@@ -10,6 +10,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - O(1) `nth_address(index)` on `Ipv4Range`, `Ipv6Range`, `IpRange`, and
   `IpSet`. Lets callers sample inside a huge target without iterating.
+- `supernet_at(new_prefix)` on `Ipv4Cidr`, `Ipv6Cidr`, and `IpCidr` —
+  climbs to the smallest enclosing block of a specific prefix length in one
+  step instead of repeated `supernet()` calls.
 
 ## [0.2.0]
 
