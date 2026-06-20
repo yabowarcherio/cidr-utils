@@ -184,6 +184,40 @@ impl IpSet {
             IpSet::Range(r) => r.nth_address(index),
         }
     }
+
+    /// The intersection of two targets, or `None` if they are disjoint or
+    /// have mismatched address families. The result is always returned as a
+    /// range (since the intersection of two contiguous address spans may not
+    /// land on an aligned CIDR boundary).
+    pub fn intersection(&self, other: &IpSet) -> Option<IpSet> {
+        let (a_lo, a_hi) = (self.first(), self.last());
+        let (b_lo, b_hi) = (other.first(), other.last());
+        match (a_lo, a_hi, b_lo, b_hi) {
+            (IpAddr::V4(a1), IpAddr::V4(a2), IpAddr::V4(b1), IpAddr::V4(b2)) => {
+                let lo = a1.max(b1);
+                let hi = a2.min(b2);
+                if lo > hi {
+                    None
+                } else {
+                    Some(IpSet::Range(IpRange::V4(
+                        crate::Ipv4Range::new(lo, hi).expect("lo<=hi by construction"),
+                    )))
+                }
+            }
+            (IpAddr::V6(a1), IpAddr::V6(a2), IpAddr::V6(b1), IpAddr::V6(b2)) => {
+                let lo = a1.max(b1);
+                let hi = a2.min(b2);
+                if lo > hi {
+                    None
+                } else {
+                    Some(IpSet::Range(IpRange::V6(
+                        crate::Ipv6Range::new(lo, hi).expect("lo<=hi by construction"),
+                    )))
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for IpSet {
