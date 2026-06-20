@@ -95,6 +95,20 @@ macro_rules! define_range {
                 let bits = self.start as u128 + index;
                 Some(<$addr>::from_bits(bits as _))
             }
+
+            /// The overlap of two ranges, or `None` if they are disjoint.
+            ///
+            /// The intersection of two contiguous ranges is itself contiguous,
+            /// so a single range can describe the result exactly.
+            pub fn intersection(&self, other: &Self) -> Option<Self> {
+                let lo = self.start.max(other.start);
+                let hi = self.end.min(other.end);
+                if lo > hi {
+                    None
+                } else {
+                    Some(Self { start: lo, end: hi })
+                }
+            }
         }
 
         impl fmt::Display for $name {
@@ -409,6 +423,16 @@ impl IpRange {
         match self {
             IpRange::V4(r) => r.nth_address(index).map(IpAddr::V4),
             IpRange::V6(r) => r.nth_address(index).map(IpAddr::V6),
+        }
+    }
+
+    /// The overlap of two ranges, or `None` if they are disjoint or have a
+    /// mismatched address family.
+    pub fn intersection(&self, other: &IpRange) -> Option<IpRange> {
+        match (self, other) {
+            (IpRange::V4(a), IpRange::V4(b)) => a.intersection(b).map(IpRange::V4),
+            (IpRange::V6(a), IpRange::V6(b)) => a.intersection(b).map(IpRange::V6),
+            _ => None,
         }
     }
 
