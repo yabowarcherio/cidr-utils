@@ -960,6 +960,61 @@ fn ipv6_supernet_at_truncates_lower_bits() {
 }
 
 #[test]
+fn ipv4_range_intersection_clips_overlap() {
+    use cidr_utils::Ipv4Range;
+    let a: Ipv4Range = "10.0.0.0-10.0.0.100".parse().unwrap();
+    let b: Ipv4Range = "10.0.0.50-10.0.0.200".parse().unwrap();
+    let i = a.intersection(&b).unwrap();
+    assert_eq!(i.to_string(), "10.0.0.50-10.0.0.100");
+    assert_eq!(i.count(), 51);
+}
+
+#[test]
+fn ipv4_range_intersection_disjoint_is_none() {
+    use cidr_utils::Ipv4Range;
+    let a: Ipv4Range = "10.0.0.0-10.0.0.10".parse().unwrap();
+    let b: Ipv4Range = "10.0.1.0-10.0.1.10".parse().unwrap();
+    assert!(a.intersection(&b).is_none());
+}
+
+#[test]
+fn iprange_intersection_mismatched_family_is_none() {
+    use cidr_utils::{IpRange, Ipv4Range, Ipv6Range};
+    use std::str::FromStr;
+    let a = IpRange::V4(Ipv4Range::from_str("10.0.0.0-10.0.0.5").unwrap());
+    let b = IpRange::V6(Ipv6Range::from_str("2001:db8::-2001:db8::5").unwrap());
+    assert!(a.intersection(&b).is_none());
+}
+
+#[test]
+fn ipset_intersection_cidr_with_cidr_returns_range() {
+    use cidr_utils::IpSet;
+    let a: IpSet = "10.0.0.0/24".parse().unwrap();
+    let b: IpSet = "10.0.0.128/26".parse().unwrap();
+    let i = a.intersection(&b).unwrap();
+    assert_eq!(i.first().to_string(), "10.0.0.128");
+    assert_eq!(i.last().to_string(), "10.0.0.191");
+    assert_eq!(i.count(), 64);
+}
+
+#[test]
+fn ipset_intersection_disjoint_is_none() {
+    use cidr_utils::IpSet;
+    let a: IpSet = "10.0.0.0/24".parse().unwrap();
+    let b: IpSet = "10.0.1.0/24".parse().unwrap();
+    assert!(a.intersection(&b).is_none());
+}
+
+#[test]
+fn ipset_intersection_with_self_is_self_range_shape() {
+    use cidr_utils::IpSet;
+    let a: IpSet = "192.168.0.0/30".parse().unwrap();
+    let i = a.intersection(&a).unwrap();
+    assert_eq!(i.first(), a.first());
+    assert_eq!(i.last(), a.last());
+}
+
+#[test]
 fn ipcidr_supernet_at_routes_to_family() {
     use cidr_utils::IpCidr;
     let v4: IpCidr = "10.20.30.0/24".parse().unwrap();
