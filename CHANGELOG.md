@@ -13,6 +13,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `supernet_at(new_prefix)` on `Ipv4Cidr`, `Ipv6Cidr`, and `IpCidr` —
   climbs to the smallest enclosing block of a specific prefix length in one
   step instead of repeated `supernet()` calls.
+- `intersection(other)` on `Ipv4Range`, `Ipv6Range`, `IpRange`, and `IpSet`
+  — the overlap of two ranges is itself a single contiguous range, so the
+  result is returned as one. `IpSet::intersection` always yields a range
+  (the overlap rarely lands on an aligned CIDR boundary).
 
 ## [0.2.0]
 
