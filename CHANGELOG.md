@@ -17,6 +17,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   — the overlap of two ranges is itself a single contiguous range, so the
   result is returned as one. `IpSet::intersection` always yields a range
   (the overlap rarely lands on an aligned CIDR boundary).
+- `exclude(other)` on `Ipv4Range`, `Ipv6Range`, and `IpRange` — the
+  range-shaped sibling of the CIDR-shaped `Ipv4Cidr::exclude`. Returns up
+  to two pieces (left, right, both, or empty). Mismatched address families
+  return the original range unchanged.
 
 ## [0.2.0]
 
