@@ -960,6 +960,56 @@ fn ipv6_supernet_at_truncates_lower_bits() {
 }
 
 #[test]
+fn ipv4_range_exclude_disjoint_returns_self() {
+    use cidr_utils::Ipv4Range;
+    let a: Ipv4Range = "10.0.0.0-10.0.0.10".parse().unwrap();
+    let b: Ipv4Range = "10.0.1.0-10.0.1.10".parse().unwrap();
+    let out = a.exclude(&b);
+    assert_eq!(out.len(), 1);
+    assert_eq!(out[0].to_string(), "10.0.0.0-10.0.0.10");
+}
+
+#[test]
+fn ipv4_range_exclude_fully_covering_returns_empty() {
+    use cidr_utils::Ipv4Range;
+    let a: Ipv4Range = "10.0.0.5-10.0.0.10".parse().unwrap();
+    let b: Ipv4Range = "10.0.0.0-10.0.0.20".parse().unwrap();
+    assert!(a.exclude(&b).is_empty());
+}
+
+#[test]
+fn ipv4_range_exclude_middle_returns_two_pieces() {
+    use cidr_utils::Ipv4Range;
+    let a: Ipv4Range = "10.0.0.0-10.0.0.100".parse().unwrap();
+    let b: Ipv4Range = "10.0.0.40-10.0.0.60".parse().unwrap();
+    let out = a.exclude(&b);
+    assert_eq!(out.len(), 2);
+    assert_eq!(out[0].to_string(), "10.0.0.0-10.0.0.39");
+    assert_eq!(out[1].to_string(), "10.0.0.61-10.0.0.100");
+}
+
+#[test]
+fn ipv4_range_exclude_left_overlap_returns_right_piece() {
+    use cidr_utils::Ipv4Range;
+    let a: Ipv4Range = "10.0.0.20-10.0.0.100".parse().unwrap();
+    let b: Ipv4Range = "10.0.0.0-10.0.0.50".parse().unwrap();
+    let out = a.exclude(&b);
+    assert_eq!(out.len(), 1);
+    assert_eq!(out[0].to_string(), "10.0.0.51-10.0.0.100");
+}
+
+#[test]
+fn iprange_exclude_mismatched_family_returns_self() {
+    use cidr_utils::{IpRange, Ipv4Range, Ipv6Range};
+    use std::str::FromStr;
+    let a = IpRange::V4(Ipv4Range::from_str("10.0.0.0-10.0.0.5").unwrap());
+    let b = IpRange::V6(Ipv6Range::from_str("2001:db8::-2001:db8::5").unwrap());
+    let out = a.exclude(&b);
+    assert_eq!(out.len(), 1);
+    assert_eq!(out[0], a);
+}
+
+#[test]
 fn ipv4_range_intersection_clips_overlap() {
     use cidr_utils::Ipv4Range;
     let a: Ipv4Range = "10.0.0.0-10.0.0.100".parse().unwrap();
