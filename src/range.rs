@@ -109,6 +109,28 @@ macro_rules! define_range {
                     Some(Self { start: lo, end: hi })
                 }
             }
+
+            /// Remove `other` from this range, returning the (at most two)
+            /// pieces that remain, sorted ascending.
+            ///
+            /// - Disjoint: result is `[self]` (unchanged).
+            /// - `other` fully covers `self`: result is empty.
+            /// - `other` partially overlaps: result has 1 or 2 pieces.
+            pub fn exclude(&self, other: &Self) -> Vec<Self> {
+                let lo = self.start.max(other.start);
+                let hi = self.end.min(other.end);
+                if lo > hi {
+                    return vec![*self];
+                }
+                let mut out = Vec::new();
+                if self.start < lo {
+                    out.push(Self { start: self.start, end: lo - 1 });
+                }
+                if hi < self.end {
+                    out.push(Self { start: hi + 1, end: self.end });
+                }
+                out
+            }
         }
 
         impl fmt::Display for $name {
@@ -433,6 +455,20 @@ impl IpRange {
             (IpRange::V4(a), IpRange::V4(b)) => a.intersection(b).map(IpRange::V4),
             (IpRange::V6(a), IpRange::V6(b)) => a.intersection(b).map(IpRange::V6),
             _ => None,
+        }
+    }
+
+    /// Remove `other` from this range, returning the (at most two) pieces
+    /// that remain. A mismatched address family returns `[self]` unchanged.
+    pub fn exclude(&self, other: &IpRange) -> Vec<IpRange> {
+        match (self, other) {
+            (IpRange::V4(a), IpRange::V4(b)) => {
+                a.exclude(b).into_iter().map(IpRange::V4).collect()
+            }
+            (IpRange::V6(a), IpRange::V6(b)) => {
+                a.exclude(b).into_iter().map(IpRange::V6).collect()
+            }
+            _ => vec![*self],
         }
     }
 
