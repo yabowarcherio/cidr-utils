@@ -453,6 +453,23 @@ macro_rules! define_cidr {
 define_cidr!(Ipv4Cidr, Ipv4AddrIter, Ipv4Subnets, Ipv4Addr, u32, 32);
 define_cidr!(Ipv6Cidr, Ipv6AddrIter, Ipv6Subnets, Ipv6Addr, u128, 128);
 
+/// Smallest IPv4 prefix length that can hold `host_count` usable hosts under
+/// the standard `/30`-and-shorter network+hosts+broadcast layout, plus the
+/// `/31` and `/32` exceptions.
+fn prefix_for_hosts(host_count: u32) -> u8 {
+    if host_count <= 1 {
+        return 32;
+    }
+    if host_count == 2 {
+        return 31;
+    }
+    // Need at least host_count + 2 addresses (network + hosts + broadcast).
+    let addrs_needed = (host_count as u64) + 2;
+    // Smallest power of two >= addrs_needed; for u64 .next_power_of_two().
+    let block_size = addrs_needed.next_power_of_two();
+    32 - block_size.trailing_zeros() as u8
+}
+
 impl Ipv4Cidr {
     /// The IPv4 broadcast address (highest address in the block).
     ///
@@ -533,6 +550,64 @@ impl Ipv4Cidr {
         } else {
             Ipv4Addr::from_bits(last)
         }
+    }
+
+    /// Allocate sub-blocks satisfying the given host-count requirements
+    /// (VLSM, *variable-length subnet masking*).
+    ///
+    /// Each entry of `host_needs` is rounded up to the smallest IPv4 block
+    /// large enough to carry that many *usable host* addresses (following
+    /// the usual `/30`-and-shorter `network + hosts + broadcast` layout, and
+    /// the `/31` and `/32` exceptions). Allocations are placed largest-first
+    /// inside this block; the returned vector preserves the original input
+    /// order.
+    ///
+    /// Returns `None` if the requirements cannot fit inside `self`.
+    ///
+    /// ```
+    /// use cidr_utils::Ipv4Cidr;
+    /// let parent: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    /// let allocs = parent.vlsm_allocate(&[60, 30, 12, 4]).unwrap();
+    /// assert_eq!(allocs[0].prefix_len(), 26); // 60 hosts → /26 (64 addr)
+    /// assert_eq!(allocs[1].prefix_len(), 27); // 30 hosts → /27 (32 addr)
+    /// assert_eq!(allocs[2].prefix_len(), 28); // 12 hosts → /28 (16 addr)
+    /// assert_eq!(allocs[3].prefix_len(), 29); // 4 hosts → /29 (8 addr)
+    /// ```
+    pub fn vlsm_allocate(&self, host_needs: &[u32]) -> Option<Vec<Self>> {
+        // Map each (index, host_need) to the prefix length it needs.
+        let mut needs: Vec<(u8, usize)> = host_needs
+            .iter()
+            .enumerate()
+            .map(|(i, &h)| (prefix_for_hosts(h), i))
+            .collect();
+        // Largest blocks (smallest prefix) first, breaking ties by original
+        // index for determinism.
+        needs.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+
+        // Free list: blocks available for splitting/allocation.
+        let mut free: Vec<Self> = vec![*self];
+        let mut out: Vec<Option<Self>> = vec![None; host_needs.len()];
+
+        for (prefix, idx) in needs {
+            // Find the *smallest* free block (longest prefix) that still
+            // contains a block of `prefix` size — i.e. whose prefix is <=
+            // the wanted prefix.
+            let pos = free
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| c.prefix_len() <= prefix)
+                .max_by_key(|(_, c)| c.prefix_len())?
+                .0;
+            // Take it and split it down to size, returning the unused halves.
+            let mut block = free.swap_remove(pos);
+            while block.prefix_len() < prefix {
+                let (lo, hi) = block.split()?;
+                free.push(hi);
+                block = lo;
+            }
+            out[idx] = Some(block);
+        }
+        out.into_iter().collect()
     }
 
     /// Iterate over the usable host addresses, excluding the network and
