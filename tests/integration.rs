@@ -960,6 +960,60 @@ fn ipv6_supernet_at_truncates_lower_bits() {
 }
 
 #[test]
+fn vlsm_allocate_packs_classic_example() {
+    use cidr_utils::Ipv4Cidr;
+    let parent: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+    let needs = [60, 30, 12, 6];
+    let out = parent.vlsm_allocate(&needs).unwrap();
+    assert_eq!(out.len(), 4);
+    // Each block must hold at least N+2 addresses (the bracketed conventions).
+    for (alloc, want_hosts) in out.iter().zip(needs.iter()) {
+        let host_cap = alloc.host_count() as u32;
+        assert!(host_cap >= *want_hosts, "block {alloc} too small for {want_hosts}");
+    }
+    // Allocations must be non-overlapping and inside the parent.
+    for a in &out {
+        assert!(parent.contains_subnet(a));
+    }
+    for i in 0..out.len() {
+        for j in i + 1..out.len() {
+            assert!(!out[i].overlaps(&out[j]), "{} overlaps {}", out[i], out[j]);
+        }
+    }
+}
+
+#[test]
+fn vlsm_allocate_preserves_input_order() {
+    use cidr_utils::Ipv4Cidr;
+    let parent: Ipv4Cidr = "10.0.0.0/24".parse().unwrap();
+    // /27 needs first, then /28, then /27 again.
+    let out = parent.vlsm_allocate(&[30, 12, 30]).unwrap();
+    assert_eq!(out[0].prefix_len(), 27);
+    assert_eq!(out[1].prefix_len(), 28);
+    assert_eq!(out[2].prefix_len(), 27);
+}
+
+#[test]
+fn vlsm_allocate_returns_none_when_overcommitted() {
+    use cidr_utils::Ipv4Cidr;
+    let parent: Ipv4Cidr = "10.0.0.0/29".parse().unwrap(); // 6 hosts
+    // Asking for two /29-sized chunks (6 hosts each) in a /29 cannot fit.
+    assert!(parent.vlsm_allocate(&[6, 6]).is_none());
+}
+
+#[test]
+fn vlsm_allocate_handles_single_host_requests() {
+    use cidr_utils::Ipv4Cidr;
+    let parent: Ipv4Cidr = "10.0.0.0/29".parse().unwrap();
+    // 8 single-host /32 allocations from a /29 (8 addresses).
+    let out = parent.vlsm_allocate(&[1; 8]).unwrap();
+    assert_eq!(out.len(), 8);
+    for c in &out {
+        assert_eq!(c.prefix_len(), 32);
+    }
+}
+
+#[test]
 fn ipv4_range_exclude_disjoint_returns_self() {
     use cidr_utils::Ipv4Range;
     let a: Ipv4Range = "10.0.0.0-10.0.0.10".parse().unwrap();
