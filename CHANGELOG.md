@@ -21,6 +21,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   range-shaped sibling of the CIDR-shaped `Ipv4Cidr::exclude`. Returns up
   to two pieces (left, right, both, or empty). Mismatched address families
   return the original range unchanged.
+- `Ipv4Cidr::vlsm_allocate(host_needs)` — variable-length subnet masking.
+  Allocates a sub-block per request, sized to the smallest prefix that
+  holds the requested host count. Allocations are placed largest-first
+  inside the parent; the return preserves input order. Returns `None` if
+  the requests cannot fit.
 
 ## [0.2.0]
 
