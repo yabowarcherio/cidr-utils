@@ -30,6 +30,40 @@ pub fn aggregate(cidrs: &[IpCidr]) -> Vec<IpCidr> {
     out
 }
 
+/// Like [`aggregate`], but no block in the result is shorter (covers more
+/// addresses) than `v4_max` / `v6_max` respectively. Useful when downstream
+/// callers refuse to handle aggregates above some prefix length — e.g. a
+/// firewall ACL that pages above `/16`.
+///
+/// `v4_max` must be in `0..=32`, `v6_max` in `0..=128`. The original
+/// `aggregate` is recovered by passing `0`/`0`.
+pub fn aggregate_max_prefix(cidrs: &[IpCidr], v4_max: u8, v6_max: u8) -> Vec<IpCidr> {
+    let mut out = Vec::new();
+    for c in aggregate(cidrs) {
+        match c {
+            IpCidr::V4(c) => {
+                if c.prefix_len() >= v4_max {
+                    out.push(IpCidr::V4(c));
+                } else {
+                    for s in c.subnets(v4_max) {
+                        out.push(IpCidr::V4(s));
+                    }
+                }
+            }
+            IpCidr::V6(c) => {
+                if c.prefix_len() >= v6_max {
+                    out.push(IpCidr::V6(c));
+                } else {
+                    for s in c.subnets(v6_max) {
+                        out.push(IpCidr::V6(s));
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
 /// A contiguous set of addresses described by one target string.
 ///
 /// Accepts three textual forms via [`FromStr`]:
