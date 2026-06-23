@@ -960,6 +960,46 @@ fn ipv6_supernet_at_truncates_lower_bits() {
 }
 
 #[test]
+fn aggregate_max_prefix_splits_oversize_blocks() {
+    use cidr_utils::{aggregate_max_prefix, IpCidr};
+    // Two /25s aggregate to a /24 — but cap output at /25 and we should see
+    // both halves back.
+    let inputs: Vec<IpCidr> = ["10.0.0.0/25", "10.0.0.128/25"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let out = aggregate_max_prefix(&inputs, 25, 0);
+    let strs: Vec<_> = out.iter().map(|c| c.to_string()).collect();
+    assert_eq!(strs, ["10.0.0.0/25", "10.0.0.128/25"]);
+}
+
+#[test]
+fn aggregate_max_prefix_zero_zero_matches_aggregate() {
+    use cidr_utils::{aggregate, aggregate_max_prefix, IpCidr};
+    let inputs: Vec<IpCidr> = ["10.0.0.0/25", "10.0.0.128/25", "192.168.1.0/24"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    assert_eq!(aggregate(&inputs), aggregate_max_prefix(&inputs, 0, 0));
+}
+
+#[test]
+fn aggregate_max_prefix_leaves_already_small_blocks_alone() {
+    use cidr_utils::{aggregate_max_prefix, IpCidr};
+    let inputs: Vec<IpCidr> = ["10.0.0.0/28", "10.0.0.32/28"]
+        .iter()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    // These don't aggregate (gap at .16-.31), and they're already /28 so
+    // capping at /24 changes nothing.
+    let out = aggregate_max_prefix(&inputs, 24, 0);
+    assert_eq!(out.len(), 2);
+    for c in &out {
+        assert!(c.prefix_len() >= 28);
+    }
+}
+
+#[test]
 fn vlsm_allocate_packs_classic_example() {
     use cidr_utils::Ipv4Cidr;
     let parent: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
