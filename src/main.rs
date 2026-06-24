@@ -67,6 +67,12 @@ struct Cli {
     #[arg(long, value_name = "CIDR", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split"])]
     exclude: Option<IpCidr>,
 
+    /// Print the enclosing CIDR block of length PREFIX for each target's
+    /// underlying CIDR. Targets that are ranges (or whose underlying prefix
+    /// is shorter) are skipped with a stderr note.
+    #[arg(long, value_name = "PREFIX", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude"])]
+    supernet: Option<u8>,
+
     /// List addresses from highest to lowest instead of lowest to highest.
     #[arg(short, long)]
     reverse: bool,
@@ -283,6 +289,34 @@ fn main() -> ExitCode {
             }
         }
         return ExitCode::SUCCESS;
+    }
+
+    if let Some(prefix) = cli.supernet {
+        let mut bad = false;
+        for (target, set) in &parsed {
+            let Some(c) = set.as_cidr() else {
+                eprintln!("cidr-utils: {target}: --supernet requires a CIDR target");
+                bad = true;
+                continue;
+            };
+            match c.supernet_at(prefix) {
+                Some(s) => {
+                    let _ = writeln!(out, "{s}");
+                }
+                None => {
+                    eprintln!(
+                        "cidr-utils: {target}: prefix /{prefix} is longer than /{}",
+                        c.prefix_len()
+                    );
+                    bad = true;
+                }
+            }
+        }
+        return if bad {
+            ExitCode::from(2)
+        } else {
+            ExitCode::SUCCESS
+        };
     }
 
     // Default: list addresses, one per line.
