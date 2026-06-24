@@ -163,6 +163,39 @@ fn total_flag_sums_addresses() {
 }
 
 #[test]
+fn supernet_flag_climbs_to_named_prefix() {
+    let out = bin()
+        .args(["--supernet", "16", "10.20.30.0/24"])
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "stderr={:?}", String::from_utf8_lossy(&out.stderr));
+    let s = String::from_utf8(out.stdout).unwrap();
+    assert_eq!(s.trim(), "10.20.0.0/16");
+}
+
+#[test]
+fn supernet_flag_rejects_longer_prefix() {
+    let out = bin()
+        .args(["--supernet", "25", "10.20.30.0/24"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(err.contains("longer"), "stderr: {err}");
+}
+
+#[test]
+fn supernet_flag_rejects_range_target() {
+    let out = bin()
+        .args(["--supernet", "16", "10.0.0.1-10.0.0.5"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(err.contains("requires a CIDR"), "stderr: {err}");
+}
+
+#[test]
 fn json_flag_emits_summary() {
     let out = bin().args(["--json", "10.0.0.0/30"]).output().unwrap();
     assert!(out.status.success());
