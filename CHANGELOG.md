@@ -29,6 +29,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `aggregate_max_prefix(cidrs, v4_max, v6_max)` runs the standard aggregator
   but refuses to merge into a block shorter than the given prefix length.
   Useful when downstream consumers can't handle large aggregates.
+- CLI `--supernet PREFIX` prints the enclosing block of length `PREFIX` for
+  each CIDR target. Exits 2 on range targets or when the requested prefix
+  is longer than the target's prefix.
 
 ## [0.2.0]
 
