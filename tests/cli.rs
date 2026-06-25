@@ -163,6 +163,47 @@ fn total_flag_sums_addresses() {
 }
 
 #[test]
+fn vlsm_flag_packs_classic_layout() {
+    let out = bin()
+        .args(["--vlsm", "60,30,12,4", "192.168.1.0/24"])
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "stderr={:?}", String::from_utf8_lossy(&out.stderr));
+    let s = String::from_utf8(out.stdout).unwrap();
+    let lines: Vec<&str> = s.lines().collect();
+    assert_eq!(lines.len(), 4);
+    // Each line is a CIDR; check the prefix length of each.
+    let prefixes: Vec<u8> = lines
+        .iter()
+        .map(|l| l.split('/').next_back().unwrap().parse().unwrap())
+        .collect();
+    assert_eq!(prefixes, vec![26, 27, 28, 29]);
+}
+
+#[test]
+fn vlsm_flag_rejects_overcommit() {
+    // /29 has 8 addresses — two /29 requests can't fit.
+    let out = bin()
+        .args(["--vlsm", "6,6", "10.0.0.0/29"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(err.contains("don't fit"), "stderr: {err}");
+}
+
+#[test]
+fn vlsm_flag_rejects_ipv6_target() {
+    let out = bin()
+        .args(["--vlsm", "1", "2001:db8::/32"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(err.contains("IPv4 CIDR"), "stderr: {err}");
+}
+
+#[test]
 fn supernet_flag_climbs_to_named_prefix() {
     let out = bin()
         .args(["--supernet", "16", "10.20.30.0/24"])
