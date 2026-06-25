@@ -73,6 +73,12 @@ struct Cli {
     #[arg(long, value_name = "PREFIX", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude"])]
     supernet: Option<u8>,
 
+    /// Allocate sub-blocks satisfying these comma-separated host-count
+    /// requirements, packed largest-first into each IPv4 CIDR target. Output
+    /// is one block per line, allocations grouped per target.
+    #[arg(long, value_name = "N,N,...", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude", "supernet"])]
+    vlsm: Option<String>,
+
     /// List addresses from highest to lowest instead of lowest to highest.
     #[arg(short, long)]
     reverse: bool,
@@ -289,6 +295,49 @@ fn main() -> ExitCode {
             }
         }
         return ExitCode::SUCCESS;
+    }
+
+    if let Some(spec) = &cli.vlsm {
+        // Parse "60,30,12,6" into a Vec<u32>.
+        let needs: Result<Vec<u32>, _> = spec
+            .split(',')
+            .map(|s| s.trim().parse::<u32>())
+            .collect();
+        let needs = match needs {
+            Ok(v) if !v.is_empty() => v,
+            Ok(_) => {
+                eprintln!("cidr-utils: --vlsm requires at least one host count");
+                return ExitCode::from(2);
+            }
+            Err(e) => {
+                eprintln!("cidr-utils: bad --vlsm spec {spec:?}: {e}");
+                return ExitCode::from(2);
+            }
+        };
+        let mut bad = false;
+        for (target, set) in &parsed {
+            let Some(IpCidr::V4(parent)) = set.as_cidr() else {
+                eprintln!("cidr-utils: {target}: --vlsm requires an IPv4 CIDR target");
+                bad = true;
+                continue;
+            };
+            match parent.vlsm_allocate(&needs) {
+                Some(allocs) => {
+                    for c in allocs {
+                        let _ = writeln!(out, "{c}");
+                    }
+                }
+                None => {
+                    eprintln!("cidr-utils: {target}: requested host counts don't fit");
+                    bad = true;
+                }
+            }
+        }
+        return if bad {
+            ExitCode::from(2)
+        } else {
+            ExitCode::SUCCESS
+        };
     }
 
     if let Some(prefix) = cli.supernet {
