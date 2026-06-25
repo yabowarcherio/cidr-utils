@@ -32,6 +32,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI `--supernet PREFIX` prints the enclosing block of length `PREFIX` for
   each CIDR target. Exits 2 on range targets or when the requested prefix
   is longer than the target's prefix.
+- CLI `--vlsm N,N,...` allocates sub-blocks for each comma-separated host
+  count inside each IPv4 CIDR target. Exits 2 on IPv6 / range targets and
+  when the requested host counts cannot fit.
 
 ## [0.2.0]
 
