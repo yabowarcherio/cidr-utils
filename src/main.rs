@@ -79,6 +79,12 @@ struct Cli {
     #[arg(long, value_name = "N,N,...", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude", "supernet"])]
     vlsm: Option<String>,
 
+    /// Intersect this CIDR/range/address with each target, printing the
+    /// overlap as `FIRST-LAST` (one line per target). Disjoint targets are
+    /// dropped silently.
+    #[arg(long, value_name = "TARGET", conflicts_with_all = ["count", "info", "contains", "cidrs", "aggregate", "split", "exclude", "supernet", "vlsm"])]
+    intersect: Option<String>,
+
     /// List addresses from highest to lowest instead of lowest to highest.
     #[arg(short, long)]
     reverse: bool,
@@ -292,6 +298,22 @@ fn main() -> ExitCode {
                 for remaining in cidr.exclude(&hole) {
                     let _ = writeln!(out, "{remaining}");
                 }
+            }
+        }
+        return ExitCode::SUCCESS;
+    }
+
+    if let Some(spec) = &cli.intersect {
+        let other = match IpSet::from_str(spec) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("cidr-utils: bad --intersect target {spec:?}: {e}");
+                return ExitCode::from(2);
+            }
+        };
+        for (_, set) in &parsed {
+            if let Some(overlap) = set.intersection(&other) {
+                let _ = writeln!(out, "{}-{}", overlap.first(), overlap.last());
             }
         }
         return ExitCode::SUCCESS;
