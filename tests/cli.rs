@@ -163,6 +163,31 @@ fn total_flag_sums_addresses() {
 }
 
 #[test]
+fn intersect_flag_emits_overlap_per_target() {
+    let out = bin()
+        .args(["--intersect", "10.0.0.128/26", "10.0.0.0/24", "192.168.1.0/24"])
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "stderr={:?}", String::from_utf8_lossy(&out.stderr));
+    let s = String::from_utf8(out.stdout).unwrap();
+    let lines: Vec<&str> = s.lines().collect();
+    // First target overlaps; second is disjoint and dropped.
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0], "10.0.0.128-10.0.0.191");
+}
+
+#[test]
+fn intersect_flag_bad_spec_exits_two() {
+    let out = bin()
+        .args(["--intersect", "not-a-cidr", "10.0.0.0/24"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(err.contains("bad --intersect"), "stderr: {err}");
+}
+
+#[test]
 fn vlsm_flag_packs_classic_layout() {
     let out = bin()
         .args(["--vlsm", "60,30,12,4", "192.168.1.0/24"])
