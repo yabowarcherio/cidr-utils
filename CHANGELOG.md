@@ -35,6 +35,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CLI `--vlsm N,N,...` allocates sub-blocks for each comma-separated host
   count inside each IPv4 CIDR target. Exits 2 on IPv6 / range targets and
   when the requested host counts cannot fit.
+- CLI `--intersect TARGET` prints the overlap of each input target with
+  `TARGET`. Disjoint targets are dropped silently.
 
 ## [0.2.0]
 
