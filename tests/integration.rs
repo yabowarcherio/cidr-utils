@@ -1104,6 +1104,25 @@ fn iprange_exclude_mismatched_family_returns_self() {
 }
 
 #[test]
+fn ipv6_range_intersection_clips_overlap() {
+    use cidr_utils::Ipv6Range;
+    let a: Ipv6Range = "2001:db8::1-2001:db8::ff".parse().unwrap();
+    let b: Ipv6Range = "2001:db8::80-2001:db8::200".parse().unwrap();
+    let i = a.intersection(&b).unwrap();
+    assert_eq!(i.to_string(), "2001:db8::80-2001:db8::ff");
+}
+
+#[test]
+fn ipset_intersection_ipv6_returns_range() {
+    use cidr_utils::IpSet;
+    let a: IpSet = "2001:db8::/64".parse().unwrap();
+    let b: IpSet = "2001:db8::abcd/120".parse().unwrap();
+    let i = a.intersection(&b).unwrap();
+    assert_eq!(i.first().to_string(), "2001:db8::ab00");
+    assert_eq!(i.last().to_string(), "2001:db8::abff");
+}
+
+#[test]
 fn ipv4_range_intersection_clips_overlap() {
     use cidr_utils::Ipv4Range;
     let a: Ipv4Range = "10.0.0.0-10.0.0.100".parse().unwrap();
