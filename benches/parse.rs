@@ -50,11 +50,29 @@ fn bench_subnetting(c: &mut Criterion) {
     });
 }
 
+fn bench_vlsm(c: &mut Criterion) {
+    let parent: Ipv4Cidr = "10.0.0.0/16".parse().unwrap();
+    let needs = [500u32, 200, 100, 50, 25, 12, 6];
+    c.bench_function("vlsm 7 needs into /16", |b| {
+        b.iter(|| black_box(&parent).vlsm_allocate(black_box(&needs)))
+    });
+}
+
+fn bench_intersection(c: &mut Criterion) {
+    let a: Ipv4Range = "10.0.0.0-10.0.255.255".parse().unwrap();
+    let b: Ipv4Range = "10.0.100.50-10.0.180.200".parse().unwrap();
+    c.bench_function("ipv4_range intersection", |b_| {
+        b_.iter(|| black_box(&a).intersection(black_box(&b)))
+    });
+}
+
 criterion_group!(
     benches,
     bench_parse,
     bench_contains,
     bench_to_cidrs,
-    bench_subnetting
+    bench_subnetting,
+    bench_vlsm,
+    bench_intersection,
 );
 criterion_main!(benches);
