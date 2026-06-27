@@ -1104,6 +1104,19 @@ fn iprange_exclude_mismatched_family_returns_self() {
 }
 
 #[test]
+fn ipset_is_subset_of_mirrors_contains_set() {
+    use cidr_utils::IpSet;
+    let parent: IpSet = "10.0.0.0/24".parse().unwrap();
+    let child: IpSet = "10.0.0.128/26".parse().unwrap();
+    let other: IpSet = "192.168.1.0/24".parse().unwrap();
+    assert!(child.is_subset_of(&parent));
+    assert!(!parent.is_subset_of(&child));
+    assert!(!child.is_subset_of(&other));
+    // A set is always a subset of itself.
+    assert!(parent.is_subset_of(&parent));
+}
+
+#[test]
 fn ipv6_range_intersection_clips_overlap() {
     use cidr_utils::Ipv6Range;
     let a: Ipv6Range = "2001:db8::1-2001:db8::ff".parse().unwrap();
