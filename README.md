@@ -178,6 +178,46 @@ The CLI exposes the same: `--cidrs` (decompose), `--aggregate` (merge),
 `--split <PREFIX>` (subnet), `--exclude <CIDR>` (subtract), `--reverse`,
 `--total`, `--json`, and `--info` (with wildcard mask and address class).
 
+Set algebra and supernet:
+
+```rust
+use cidr_utils::{aggregate_max_prefix, IpCidr, IpSet, Ipv4Cidr};
+
+// Climb to a specific enclosing block in one step.
+let c: Ipv4Cidr = "10.20.30.0/24".parse().unwrap();
+assert_eq!(c.supernet_at(16).unwrap().to_string(), "10.20.0.0/16");
+
+// Overlap of two targets (always a range).
+let a: IpSet = "10.0.0.0/24".parse().unwrap();
+let b: IpSet = "10.0.0.128/26".parse().unwrap();
+let i = a.intersection(&b).unwrap();
+assert_eq!(i.count(), 64);
+
+// Aggregate, but never produce a block shorter than /23.
+let inputs: Vec<IpCidr> = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+    .iter().map(|s| s.parse().unwrap()).collect();
+let capped = aggregate_max_prefix(&inputs, 23, 0);
+assert_eq!(capped.len(), 2); // two /23s, not one /22
+```
+
+VLSM allocator:
+
+```rust
+use cidr_utils::Ipv4Cidr;
+let parent: Ipv4Cidr = "192.168.1.0/24".parse().unwrap();
+let allocs = parent.vlsm_allocate(&[60, 30, 12, 4]).unwrap();
+assert_eq!(allocs[0].prefix_len(), 26);
+assert_eq!(allocs[3].prefix_len(), 29);
+```
+
+From the CLI:
+
+```sh
+cidr-utils --supernet 16 10.20.30.0/24
+cidr-utils --intersect 10.0.0.128/26 10.0.0.0/24
+cidr-utils --vlsm 60,30,12,4 192.168.1.0/24
+```
+
 ## Design notes
 
 - **No networking.** This crate is pure address arithmetic; it never resolves
