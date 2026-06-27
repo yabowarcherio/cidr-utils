@@ -37,6 +37,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   when the requested host counts cannot fit.
 - CLI `--intersect TARGET` prints the overlap of each input target with
   `TARGET`. Disjoint targets are dropped silently.
+- `IpSet::is_subset_of(other)` — mirror of `contains_set`, reads more
+  naturally as `child.is_subset_of(parent)`.
+- README sections covering `--supernet`, `--intersect`, `--vlsm`, and the
+  underlying set algebra.
+- Bench coverage for `vlsm_allocate` and range intersection.
 
 ## [0.2.0]
 
