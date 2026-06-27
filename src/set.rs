@@ -219,6 +219,12 @@ impl IpSet {
         }
     }
 
+    /// Returns `true` if this entire target's address span lies within
+    /// `other`. The mirror of [`contains_set`](Self::contains_set).
+    pub fn is_subset_of(&self, other: &IpSet) -> bool {
+        other.contains_set(self)
+    }
+
     /// The intersection of two targets, or `None` if they are disjoint or
     /// have mismatched address families. The result is always returned as a
     /// range (since the intersection of two contiguous address spans may not
