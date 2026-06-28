@@ -1104,6 +1104,17 @@ fn iprange_exclude_mismatched_family_returns_self() {
 }
 
 #[test]
+fn ipset_is_ipv4_and_is_ipv6_are_exclusive() {
+    use cidr_utils::IpSet;
+    let v4: IpSet = "10.0.0.0/24".parse().unwrap();
+    let v6: IpSet = "2001:db8::/32".parse().unwrap();
+    let v4r: IpSet = "10.0.0.1-10.0.0.5".parse().unwrap();
+    assert!(v4.is_ipv4() && !v4.is_ipv6());
+    assert!(v6.is_ipv6() && !v6.is_ipv4());
+    assert!(v4r.is_ipv4() && !v4r.is_ipv6());
+}
+
+#[test]
 fn ipset_is_subset_of_mirrors_contains_set() {
     use cidr_utils::IpSet;
     let parent: IpSet = "10.0.0.0/24".parse().unwrap();
