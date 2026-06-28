@@ -42,6 +42,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - README sections covering `--supernet`, `--intersect`, `--vlsm`, and the
   underlying set algebra.
 - Bench coverage for `vlsm_allocate` and range intersection.
+- `IpSet::is_ipv4` / `IpSet::is_ipv6` family predicates.
 
 ## [0.2.0]
 
