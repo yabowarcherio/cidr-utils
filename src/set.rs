@@ -225,6 +225,16 @@ impl IpSet {
         other.contains_set(self)
     }
 
+    /// `true` if this target is an IPv4 CIDR / range / address.
+    pub fn is_ipv4(&self) -> bool {
+        matches!(self.first(), IpAddr::V4(_))
+    }
+
+    /// `true` if this target is an IPv6 CIDR / range / address.
+    pub fn is_ipv6(&self) -> bool {
+        matches!(self.first(), IpAddr::V6(_))
+    }
+
     /// The intersection of two targets, or `None` if they are disjoint or
     /// have mismatched address families. The result is always returned as a
     /// range (since the intersection of two contiguous address spans may not
