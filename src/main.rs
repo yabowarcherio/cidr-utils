@@ -321,10 +321,7 @@ fn main() -> ExitCode {
 
     if let Some(spec) = &cli.vlsm {
         // Parse "60,30,12,6" into a Vec<u32>.
-        let needs: Result<Vec<u32>, _> = spec
-            .split(',')
-            .map(|s| s.trim().parse::<u32>())
-            .collect();
+        let needs: Result<Vec<u32>, _> = spec.split(',').map(|s| s.trim().parse::<u32>()).collect();
         let needs = match needs {
             Ok(v) if !v.is_empty() => v,
             Ok(_) => {

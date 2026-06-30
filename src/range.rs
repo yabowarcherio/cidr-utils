@@ -124,10 +124,16 @@ macro_rules! define_range {
                 }
                 let mut out = Vec::new();
                 if self.start < lo {
-                    out.push(Self { start: self.start, end: lo - 1 });
+                    out.push(Self {
+                        start: self.start,
+                        end: lo - 1,
+                    });
                 }
                 if hi < self.end {
-                    out.push(Self { start: hi + 1, end: self.end });
+                    out.push(Self {
+                        start: hi + 1,
+                        end: self.end,
+                    });
                 }
                 out
             }
@@ -462,12 +468,8 @@ impl IpRange {
     /// that remain. A mismatched address family returns `[self]` unchanged.
     pub fn exclude(&self, other: &IpRange) -> Vec<IpRange> {
         match (self, other) {
-            (IpRange::V4(a), IpRange::V4(b)) => {
-                a.exclude(b).into_iter().map(IpRange::V4).collect()
-            }
-            (IpRange::V6(a), IpRange::V6(b)) => {
-                a.exclude(b).into_iter().map(IpRange::V6).collect()
-            }
+            (IpRange::V4(a), IpRange::V4(b)) => a.exclude(b).into_iter().map(IpRange::V4).collect(),
+            (IpRange::V6(a), IpRange::V6(b)) => a.exclude(b).into_iter().map(IpRange::V6).collect(),
             _ => vec![*self],
         }
     }

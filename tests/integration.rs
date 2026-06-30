@@ -897,8 +897,14 @@ fn ipv6_range_nth_address_indexes_in_bounds() {
     use cidr_utils::Ipv6Range;
     use std::net::Ipv6Addr;
     let r: Ipv6Range = "2001:db8::1-2001:db8::5".parse().unwrap();
-    assert_eq!(r.nth_address(0).unwrap(), Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1));
-    assert_eq!(r.nth_address(4).unwrap(), Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 5));
+    assert_eq!(
+        r.nth_address(0).unwrap(),
+        Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)
+    );
+    assert_eq!(
+        r.nth_address(4).unwrap(),
+        Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 5)
+    );
     assert_eq!(r.nth_address(5), None);
 }
 
@@ -907,13 +913,25 @@ fn ipset_nth_address_works_on_cidr_and_range() {
     use cidr_utils::IpSet;
     use std::net::IpAddr;
     let block: IpSet = "192.168.0.0/30".parse().unwrap();
-    assert_eq!(block.nth_address(0).unwrap(), "192.168.0.0".parse::<IpAddr>().unwrap());
-    assert_eq!(block.nth_address(3).unwrap(), "192.168.0.3".parse::<IpAddr>().unwrap());
+    assert_eq!(
+        block.nth_address(0).unwrap(),
+        "192.168.0.0".parse::<IpAddr>().unwrap()
+    );
+    assert_eq!(
+        block.nth_address(3).unwrap(),
+        "192.168.0.3".parse::<IpAddr>().unwrap()
+    );
     assert_eq!(block.nth_address(4), None);
 
     let range: IpSet = "10.0.0.5-10.0.0.8".parse().unwrap();
-    assert_eq!(range.nth_address(0).unwrap(), "10.0.0.5".parse::<IpAddr>().unwrap());
-    assert_eq!(range.nth_address(3).unwrap(), "10.0.0.8".parse::<IpAddr>().unwrap());
+    assert_eq!(
+        range.nth_address(0).unwrap(),
+        "10.0.0.5".parse::<IpAddr>().unwrap()
+    );
+    assert_eq!(
+        range.nth_address(3).unwrap(),
+        "10.0.0.8".parse::<IpAddr>().unwrap()
+    );
     assert_eq!(range.nth_address(4), None);
 }
 
@@ -923,7 +941,10 @@ fn iprange_nth_address_delegates_to_family() {
     use std::net::IpAddr;
     let r4: Ipv4Range = "10.0.0.10-10.0.0.20".parse().unwrap();
     let ip: IpRange = IpRange::V4(r4);
-    assert_eq!(ip.nth_address(5).unwrap(), IpAddr::V4(r4.nth_address(5).unwrap()));
+    assert_eq!(
+        ip.nth_address(5).unwrap(),
+        IpAddr::V4(r4.nth_address(5).unwrap())
+    );
 }
 
 #[test]
@@ -1009,7 +1030,10 @@ fn vlsm_allocate_packs_classic_example() {
     // Each block must hold at least N+2 addresses (the bracketed conventions).
     for (alloc, want_hosts) in out.iter().zip(needs.iter()) {
         let host_cap = alloc.host_count() as u32;
-        assert!(host_cap >= *want_hosts, "block {alloc} too small for {want_hosts}");
+        assert!(
+            host_cap >= *want_hosts,
+            "block {alloc} too small for {want_hosts}"
+        );
     }
     // Allocations must be non-overlapping and inside the parent.
     for a in &out {
@@ -1037,7 +1061,7 @@ fn vlsm_allocate_preserves_input_order() {
 fn vlsm_allocate_returns_none_when_overcommitted() {
     use cidr_utils::Ipv4Cidr;
     let parent: Ipv4Cidr = "10.0.0.0/29".parse().unwrap(); // 6 hosts
-    // Asking for two /29-sized chunks (6 hosts each) in a /29 cannot fit.
+                                                           // Asking for two /29-sized chunks (6 hosts each) in a /29 cannot fit.
     assert!(parent.vlsm_allocate(&[6, 6]).is_none());
 }
 

@@ -165,10 +165,19 @@ fn total_flag_sums_addresses() {
 #[test]
 fn intersect_flag_emits_overlap_per_target() {
     let out = bin()
-        .args(["--intersect", "10.0.0.128/26", "10.0.0.0/24", "192.168.1.0/24"])
+        .args([
+            "--intersect",
+            "10.0.0.128/26",
+            "10.0.0.0/24",
+            "192.168.1.0/24",
+        ])
         .output()
         .unwrap();
-    assert!(out.status.success(), "stderr={:?}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr={:?}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let s = String::from_utf8(out.stdout).unwrap();
     let lines: Vec<&str> = s.lines().collect();
     // First target overlaps; second is disjoint and dropped.
@@ -193,7 +202,11 @@ fn vlsm_flag_packs_classic_layout() {
         .args(["--vlsm", "60,30,12,4", "192.168.1.0/24"])
         .output()
         .unwrap();
-    assert!(out.status.success(), "stderr={:?}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr={:?}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let s = String::from_utf8(out.stdout).unwrap();
     let lines: Vec<&str> = s.lines().collect();
     assert_eq!(lines.len(), 4);
@@ -234,7 +247,11 @@ fn supernet_flag_climbs_to_named_prefix() {
         .args(["--supernet", "16", "10.20.30.0/24"])
         .output()
         .unwrap();
-    assert!(out.status.success(), "stderr={:?}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr={:?}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let s = String::from_utf8(out.stdout).unwrap();
     assert_eq!(s.trim(), "10.20.0.0/16");
 }
